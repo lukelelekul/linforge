@@ -1,0 +1,3076 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TopicMuse — Agent Studio Workbench</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwindcss.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            },
+            colors: {
+              brand: {
+                50: '#f0fdfa',
+                100: '#ccfbf1',
+                200: '#99f6e4',
+                300: '#5eead4',
+                400: '#2dd4bf',
+                500: '#14b8a6',
+                600: '#0d9488',
+                700: '#0f766e',
+                800: '#115e59',
+                900: '#134e4a',
+              },
+              warm: {
+                50: '#fffbeb',
+                100: '#fef3c7',
+                200: '#fde68a',
+                300: '#fcd34d',
+                400: '#fbbf24',
+                500: '#f59e0b',
+              },
+              surface: {
+                0: '#ffffff',
+                1: '#f8fafa',
+                2: '#f1f5f4',
+                3: '#e2e8e7',
+              },
+              ink: {
+                DEFAULT: '#0f1d1b',
+                secondary: '#4b6563',
+                tertiary: '#8da5a2',
+                faint: '#c5d5d3',
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #f8fafa;
+        color: #0f1d1b;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      /* Cards */
+      .card {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 14px;
+        box-shadow:
+          0 1px 3px rgba(0, 0, 0, 0.03),
+          0 1px 2px rgba(0, 0, 0, 0.02);
+        transition: all 0.2s ease;
+      }
+      .card:hover {
+        box-shadow:
+          0 4px 16px rgba(0, 0, 0, 0.05),
+          0 2px 6px rgba(0, 0, 0, 0.03);
+        border-color: rgba(0, 0, 0, 0.07);
+      }
+
+      /* Badges */
+      .badge {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .badge-ok {
+        background: #d1fae5;
+        color: #059669;
+      }
+      .badge-fail {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      .badge-run {
+        background: #dbeafe;
+        color: #2563eb;
+      }
+      .badge-tool {
+        background: #ccfbf1;
+        color: #0d9488;
+      }
+      .badge-warn {
+        background: #fef3c7;
+        color: #d97706;
+      }
+      .badge-p2 {
+        background: #f3f4f6;
+        color: #9ca3af;
+      }
+
+      /* Buttons */
+      .btn-primary {
+        background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+      }
+      .btn-primary:hover {
+        box-shadow: 0 4px 16px rgba(13, 148, 136, 0.3);
+        transform: translateY(-0.5px);
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .btn-secondary {
+        background: #fff;
+        border: 1px solid #e2e8e7;
+        color: #4b6563;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        transition: all 0.15s;
+        cursor: pointer;
+      }
+      .btn-secondary:hover {
+        background: #f8fafa;
+        color: #0f1d1b;
+        border-color: #c5d5d3;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #e2e8e7;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #c5d5d3;
+      }
+
+      /* Tab */
+      .mode-tab {
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+        color: #4b6563;
+        background: transparent;
+        border: none;
+      }
+      .mode-tab:hover {
+        color: #0f1d1b;
+        background: #f1f5f4;
+      }
+      .mode-tab.active {
+        background: #f0fdfa;
+        color: #0d9488;
+      }
+
+      /* Graph node on canvas */
+      .graph-node {
+        position: absolute;
+        width: 220px;
+        background: #fff;
+        border: 1.5px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        padding: 14px 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        z-index: 2;
+      }
+      .graph-node:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border-color: rgba(0, 0, 0, 0.12);
+      }
+      .graph-node.selected {
+        border-color: #0d9488;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+      }
+      .graph-node.bound {
+        border-left: 3px solid #0d9488;
+      }
+      .graph-node.skeleton {
+        border: 1.5px dashed #c5d5d3;
+        background: #f8fafa;
+      }
+      .graph-node.executed {
+        border-color: #0d9488;
+        border-left: 3px solid #0d9488;
+      }
+      .graph-node.executing {
+        border-color: #2563eb;
+        border-left: 3px solid #2563eb;
+        animation: nodePulse 2s infinite;
+      }
+      .graph-node.dimmed {
+        opacity: 0.4;
+        border-color: rgba(0, 0, 0, 0.05);
+      }
+
+      @keyframes nodePulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 0 6px rgba(37, 99, 235, 0);
+        }
+      }
+
+      @keyframes dotPulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      /* Start/End special nodes */
+      .graph-terminal {
+        position: absolute;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: default;
+      }
+
+      /* Run history card */
+      .run-card {
+        border-radius: 12px;
+        padding: 12px 14px;
+        cursor: pointer;
+        transition: all 0.15s;
+        border: 1.5px solid transparent;
+      }
+      .run-card:hover {
+        background: #f1f5f4;
+      }
+      .run-card.selected {
+        background: #f0fdfa;
+        border-color: #0d9488;
+      }
+      .run-card.running {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+      }
+
+      /* Node pool item */
+      .pool-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        cursor: grab;
+        transition: all 0.15s;
+        font-size: 13px;
+      }
+      .pool-item:hover {
+        background: #f1f5f4;
+      }
+
+      /* Color dot */
+      .color-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.15s;
+      }
+      .color-dot:hover {
+        transform: scale(1.15);
+      }
+      .color-dot.active {
+        border-color: #0f1d1b;
+      }
+
+      /* Template card */
+      .tpl-card {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1.5px solid #e2e8e7;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-size: 13px;
+      }
+      .tpl-card:hover {
+        border-color: #c5d5d3;
+        background: #f8fafa;
+      }
+      .tpl-card.active {
+        border-color: #0d9488;
+        background: #f0fdfa;
+      }
+
+      /* Prompt editor */
+      .prompt-textarea {
+        font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        background: #f8fafa;
+        border: 1px solid #e2e8e7;
+        border-radius: 10px;
+        padding: 14px;
+        resize: none;
+        width: 100%;
+        color: #0f1d1b;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .prompt-textarea:focus {
+        border-color: #2dd4bf;
+        box-shadow: 0 0 0 3px rgba(153, 246, 228, 0.3);
+      }
+
+      /* Slider */
+      input[type='range'] {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 4px;
+        border-radius: 2px;
+        background: #e2e8e7;
+        outline: none;
+      }
+      input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #0d9488;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      }
+
+      /* Pill for stats */
+      .stat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 500;
+        background: #f1f5f4;
+        color: #4b6563;
+      }
+    </style>
+  </head>
+  <body class="h-screen flex flex-col">
+    <!-- ========== HEADER BAR ========== -->
+    <header
+      class="h-14 flex items-center justify-between px-6 bg-white border-b border-surface-2 shrink-0"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-[15px] font-semibold text-ink">Agent Studio</h1>
+          <p class="text-[11px] text-ink-tertiary -mt-0.5">
+            ContentRadar Agent Workbench
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="stat-pill">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            5/7 节点已绑定
+          </span>
+          <span class="stat-pill" style="background: #d1fae5; color: #059669">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            Graph 有效
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ========== MAIN 3-COLUMN LAYOUT ========== -->
+    <div class="flex flex-1 overflow-hidden">
+      <!-- ===== LEFT PANEL (300px) ===== -->
+      <aside
+        id="leftPanel"
+        class="w-[300px] shrink-0 bg-white border-r border-surface-2 flex flex-col overflow-hidden"
+      >
+        <!-- Mode Toggle -->
+        <div class="p-4 border-b border-surface-2">
+          <div class="flex gap-1 bg-surface-1 p-1 rounded-[10px]">
+            <button
+              class="mode-tab active flex-1"
+              data-mode="blueprint"
+              onclick="switchMode('blueprint')"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="inline -mt-0.5 mr-1"
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" /></svg
+              >Blueprint
+            </button>
+            <button
+              class="mode-tab flex-1"
+              data-mode="run"
+              onclick="switchMode('run')"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="inline -mt-0.5 mr-1"
+              >
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg
+              >运行调试
+            </button>
+          </div>
+        </div>
+
+        <!-- Blueprint Mode Content -->
+        <div id="leftBlueprint" class="flex-1 overflow-y-auto">
+          <!-- Template Selection -->
+          <div class="p-4 border-b border-surface-2">
+            <div
+              class="text-[10px] font-semibold tracking-[0.1em] text-ink-tertiary uppercase mb-3"
+            >
+              选择模板
+            </div>
+            <div class="space-y-2">
+              <div class="tpl-card active">
+                <div class="flex items-center gap-2">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0d9488"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                    />
+                    <path
+                      d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"
+                    />
+                  </svg>
+                  <span class="font-medium text-ink">ReAct Agent</span>
+                  <span class="badge badge-ok ml-auto">当前</span>
+                </div>
+                <p class="text-[12px] text-ink-tertiary mt-1">
+                  采集 + 分析 + 选题生成的混合架构
+                </p>
+              </div>
+              <div class="tpl-card">
+                <div class="flex items-center gap-2">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#8da5a2"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                  <span class="font-medium text-ink-secondary">Pipeline</span>
+                  <span class="badge badge-p2 ml-auto">Phase 2</span>
+                </div>
+              </div>
+              <div class="tpl-card">
+                <div class="flex items-center gap-2">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#8da5a2"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                      d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9 2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9 2.83-2.83"
+                    />
+                  </svg>
+                  <span class="font-medium text-ink-secondary">Map-Reduce</span>
+                  <span class="badge badge-p2 ml-auto">Phase 2</span>
+                </div>
+              </div>
+              <div class="tpl-card">
+                <div class="flex items-center gap-2">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#8da5a2"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  <span class="font-medium text-ink-secondary"
+                    >Human-in-the-loop</span
+                  >
+                  <span class="badge badge-p2 ml-auto">Phase 2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Node Pool -->
+          <div class="p-4">
+            <div
+              class="text-[10px] font-semibold tracking-[0.1em] text-ink-tertiary uppercase mb-3"
+            >
+              节点池
+            </div>
+            <div class="space-y-1">
+              <div
+                class="pool-item"
+                data-node="planner"
+                onclick="selectNode('planner')"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0d9488"
+                    stroke-width="2"
+                  >
+                    <path d="M12 20h9" />
+                    <path
+                      d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"
+                    />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-[13px] text-ink">planner</div>
+                  <div class="text-[11px] text-ink-tertiary">ReAct 规划器</div>
+                </div>
+                <div
+                  class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"
+                  title="已绑定"
+                ></div>
+              </div>
+              <div
+                class="pool-item"
+                data-node="tools"
+                onclick="selectNode('tools')"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0d9488"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                    />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-[13px] text-ink">tools</div>
+                  <div class="text-[11px] text-ink-tertiary">工具执行器</div>
+                </div>
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
+              </div>
+              <div
+                class="pool-item"
+                data-node="processToolResults"
+                onclick="selectNode('processToolResults')"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0d9488"
+                    stroke-width="2"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-[13px] text-ink truncate">
+                    processToolResults
+                  </div>
+                  <div class="text-[11px] text-ink-tertiary">提取结果</div>
+                </div>
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
+              </div>
+              <div
+                class="pool-item"
+                data-node="checkLimits"
+                onclick="selectNode('checkLimits')"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0d9488"
+                    stroke-width="2"
+                  >
+                    <path d="M12 9v4" />
+                    <path
+                      d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636-2.87L13.637 3.59a1.914 1.914 0 0 0-3.274 0z"
+                    />
+                    <path d="M12 17h.01" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-[13px] text-ink">
+                    checkLimits
+                  </div>
+                  <div class="text-[11px] text-ink-tertiary">边界检查</div>
+                </div>
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
+              </div>
+              <div
+                class="pool-item"
+                data-node="analyzer"
+                onclick="selectNode('analyzer')"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0d9488"
+                    stroke-width="2"
+                  >
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-[13px] text-ink">analyzer</div>
+                  <div class="text-[11px] text-ink-tertiary">内容分析器</div>
+                </div>
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
+              </div>
+              <div
+                class="pool-item"
+                data-node="topicGenerator"
+                onclick="selectNode('topicGenerator')"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-warm-50 flex items-center justify-center shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#f59e0b"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"
+                    />
+                    <path d="M9 18h6" />
+                    <path d="M10 22h4" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-[13px] text-ink">
+                    topicGenerator
+                  </div>
+                  <div class="text-[11px] text-ink-tertiary">选题生成器</div>
+                </div>
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
+              </div>
+              <div
+                class="pool-item"
+                data-node="saveResults"
+                onclick="selectNode('saveResults')"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-surface-2 flex items-center justify-center shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#8da5a2"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                    />
+                    <polyline points="17 21 17 13 7 13 7 21" />
+                    <polyline points="7 3 7 8 15 8" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-[13px] text-ink-secondary">
+                    saveResults
+                  </div>
+                  <div class="text-[11px] text-ink-tertiary">保存结果</div>
+                </div>
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
+              </div>
+
+              <div class="h-px bg-surface-2 my-2"></div>
+              <div
+                class="text-[10px] font-semibold tracking-[0.1em] text-ink-tertiary uppercase mb-2"
+              >
+                未实现节点
+              </div>
+
+              <div
+                class="pool-item opacity-60"
+                data-node="humanReview"
+                onclick="selectNode('humanReview')"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-surface-2 flex items-center justify-center shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#c5d5d3"
+                    stroke-width="2"
+                  >
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-[13px] text-ink-tertiary">
+                    humanReview
+                  </div>
+                  <div class="text-[11px] text-ink-faint">人工审核节点</div>
+                </div>
+                <div
+                  class="w-2 h-2 rounded-full bg-warm-400 shrink-0"
+                  title="未实现"
+                ></div>
+              </div>
+              <div
+                class="pool-item opacity-60"
+                data-node="enricher"
+                onclick="selectNode('enricher')"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-surface-2 flex items-center justify-center shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#c5d5d3"
+                    stroke-width="2"
+                  >
+                    <path d="M12 3v12" />
+                    <path d="m8 11 4 4 4-4" />
+                    <path
+                      d="M8 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4"
+                    />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-[13px] text-ink-tertiary">
+                    enricher
+                  </div>
+                  <div class="text-[11px] text-ink-faint">内容丰富器</div>
+                </div>
+                <div
+                  class="w-2 h-2 rounded-full bg-warm-400 shrink-0"
+                  title="未实现"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Run Mode Content (hidden by default) -->
+        <div id="leftRun" class="flex-1 overflow-y-auto hidden">
+          <!-- Run Input -->
+          <div class="p-4 border-b border-surface-2">
+            <div
+              class="text-[10px] font-semibold tracking-[0.1em] text-ink-tertiary uppercase mb-3"
+            >
+              运行指令
+            </div>
+            <textarea
+              id="runInput"
+              class="w-full h-[88px] text-[13px] rounded-xl bg-surface-1 border border-surface-3 px-4 py-3 text-ink placeholder-ink-tertiary outline-none transition-all focus:ring-2 focus:ring-brand-200 focus:border-brand-400 resize-none"
+              placeholder="描述你希望 Agent 关注的内容方向，例如：关注 AI 编程工具和 LLM 应用开发的最新趋势..."
+            ></textarea>
+            <button
+              id="runBtn"
+              class="btn-primary w-full mt-3 py-2.5 px-5 rounded-xl text-[13px] font-medium flex items-center justify-center gap-2"
+              disabled
+              onclick="alert('运行 Agent（原型演示）')"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+              运行 Agent
+            </button>
+          </div>
+
+          <!-- Run History -->
+          <div class="p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div
+                class="text-[10px] font-semibold tracking-[0.1em] text-ink-tertiary uppercase"
+              >
+                运行历史
+              </div>
+            </div>
+            <!-- Search -->
+            <div class="relative mb-3">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#8da5a2"
+                stroke-width="2"
+                class="absolute left-3 top-1/2 -translate-y-1/2"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                type="text"
+                placeholder="搜索指令或 ID..."
+                class="w-full text-[12px] rounded-lg bg-surface-1 border border-surface-3 pl-9 pr-3 py-2 text-ink placeholder-ink-tertiary outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400"
+              />
+            </div>
+
+            <div class="space-y-2">
+              <!-- Running -->
+              <div class="run-card running" onclick="selectRun(this)">
+                <div class="text-[13px] text-ink font-medium truncate">
+                  关注 AI Agent 框架和 LLM 工具链的最新动态
+                </div>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <span class="badge badge-run">
+                    <span
+                      class="w-1.5 h-1.5 rounded-full bg-blue-500"
+                      style="animation: dotPulse 1.5s infinite"
+                    ></span>
+                    运行中
+                  </span>
+                  <span class="text-[11px] text-ink-tertiary">刚刚</span>
+                  <span class="text-[11px] text-ink-faint font-mono"
+                    >#a3f8c2d1</span
+                  >
+                </div>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <span
+                    class="stat-pill"
+                    style="font-size: 10px; padding: 2px 7px"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="8" cy="21" r="1" />
+                      <circle cx="19" cy="21" r="1" />
+                      <path
+                        d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"
+                      />
+                    </svg>
+                    8.2k tokens
+                  </span>
+                  <span
+                    class="stat-pill"
+                    style="font-size: 10px; padding: 2px 7px"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"
+                      />
+                      <path d="M9 18h6" />
+                      <path d="M10 22h4" />
+                    </svg>
+                    进行中...
+                  </span>
+                </div>
+              </div>
+
+              <!-- Selected / Completed -->
+              <div class="run-card selected" onclick="selectRun(this)">
+                <div class="text-[13px] text-ink font-medium truncate">
+                  关注 Rust 和 WebAssembly 在前端工具链中的应用
+                </div>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <span class="badge badge-ok">完成</span>
+                  <span class="text-[11px] text-ink-tertiary">25 分钟前</span>
+                  <span class="text-[11px] text-ink-faint font-mono"
+                    >#b7e4a9f2</span
+                  >
+                </div>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <span
+                    class="stat-pill"
+                    style="font-size: 10px; padding: 2px 7px"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="8" cy="21" r="1" />
+                      <circle cx="19" cy="21" r="1" />
+                      <path
+                        d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"
+                      />
+                    </svg>
+                    42.7k tokens
+                  </span>
+                  <span
+                    class="stat-pill"
+                    style="font-size: 10px; padding: 2px 7px"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"
+                      />
+                      <path d="M9 18h6" />
+                      <path d="M10 22h4" />
+                    </svg>
+                    5 个选题
+                  </span>
+                </div>
+              </div>
+
+              <!-- Completed -->
+              <div class="run-card" onclick="selectRun(this)">
+                <div class="text-[13px] text-ink font-medium truncate">
+                  分析 Next.js 15 和 React Server Components 的生态进展
+                </div>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <span class="badge badge-ok">完成</span>
+                  <span class="text-[11px] text-ink-tertiary">2 小时前</span>
+                  <span class="text-[11px] text-ink-faint font-mono"
+                    >#c9d1e3a4</span
+                  >
+                </div>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <span
+                    class="stat-pill"
+                    style="font-size: 10px; padding: 2px 7px"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="8" cy="21" r="1" />
+                      <circle cx="19" cy="21" r="1" />
+                      <path
+                        d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"
+                      />
+                    </svg>
+                    38.1k tokens
+                  </span>
+                  <span
+                    class="stat-pill"
+                    style="font-size: 10px; padding: 2px 7px"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"
+                      />
+                      <path d="M9 18h6" />
+                      <path d="M10 22h4" />
+                    </svg>
+                    4 个选题
+                  </span>
+                </div>
+              </div>
+
+              <!-- Failed -->
+              <div class="run-card" onclick="selectRun(this)">
+                <div class="text-[13px] text-ink font-medium truncate">
+                  关注 DevOps 和平台工程的最新实践
+                </div>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <span class="badge badge-fail">失败</span>
+                  <span class="text-[11px] text-ink-tertiary">昨天</span>
+                  <span class="text-[11px] text-ink-faint font-mono"
+                    >#d2f0b8c5</span
+                  >
+                </div>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <span
+                    class="stat-pill"
+                    style="font-size: 10px; padding: 2px 7px"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="8" cy="21" r="1" />
+                      <circle cx="19" cy="21" r="1" />
+                      <path
+                        d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"
+                      />
+                    </svg>
+                    5.3k tokens
+                  </span>
+                  <span
+                    class="stat-pill"
+                    style="
+                      font-size: 10px;
+                      padding: 2px 7px;
+                      background: #fee2e2;
+                      color: #dc2626;
+                    "
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="m15 9-6 6" />
+                      <path d="m9 9 6 6" />
+                    </svg>
+                    Token 超限
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ===== CENTER CANVAS ===== -->
+      <main id="canvas" class="flex-1 bg-surface-1 relative overflow-hidden">
+        <!-- Grid background -->
+        <svg
+          class="absolute inset-0 w-full h-full"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <pattern
+              id="grid"
+              width="24"
+              height="24"
+              patternUnits="userSpaceOnUse"
+            >
+              <path
+                d="M 24 0 L 0 0 0 24"
+                fill="none"
+                stroke="#e2e8e7"
+                stroke-width="0.5"
+                opacity="0.6"
+              />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+
+        <!-- Blueprint Canvas -->
+        <div id="canvasBlueprint" class="absolute inset-0">
+          <!-- SVG Edges -->
+          <svg class="absolute inset-0 w-full h-full" style="z-index: 1">
+            <defs>
+              <marker
+                id="arrowBrand"
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 8 3, 0 6" fill="#0d9488" />
+              </marker>
+              <marker
+                id="arrowGray"
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 8 3, 0 6" fill="#c5d5d3" />
+              </marker>
+            </defs>
+            <!-- START -> planner -->
+            <path
+              d="M 120 60 L 120 90"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+            />
+            <!-- planner -> tools (right) -->
+            <path
+              d="M 230 140 L 350 140 L 350 175"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+            />
+            <text
+              x="268"
+              y="133"
+              font-size="10"
+              fill="#0d9488"
+              font-weight="500"
+            >
+              有 tool_calls
+            </text>
+            <!-- planner -> analyzer (down, text response) -->
+            <path
+              d="M 120 180 L 120 340"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+            />
+            <text
+              x="128"
+              y="265"
+              font-size="10"
+              fill="#0d9488"
+              font-weight="500"
+            >
+              文本响应
+            </text>
+            <!-- tools -> processToolResults -->
+            <path
+              d="M 350 245 L 350 280"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+            />
+            <!-- processToolResults -> checkLimits -->
+            <path
+              d="M 350 350 L 350 385"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+            />
+            <!-- checkLimits -> planner (continue, go up) -->
+            <path
+              d="M 460 420 L 520 420 L 520 140 L 230 140"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+              stroke-dasharray="4 3"
+            />
+            <text
+              x="528"
+              y="285"
+              font-size="10"
+              fill="#0d9488"
+              font-weight="500"
+            >
+              继续采集
+            </text>
+            <!-- checkLimits -> analyzer (items >= 20) -->
+            <path
+              d="M 240 420 L 120 420 L 120 400"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+            />
+            <text
+              x="148"
+              y="432"
+              font-size="10"
+              fill="#0d9488"
+              font-weight="500"
+            >
+              items >= 20
+            </text>
+            <!-- analyzer -> topicGenerator -->
+            <path
+              d="M 120 410 L 120 475"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+            />
+            <!-- topicGenerator -> saveResults -->
+            <path
+              d="M 120 545 L 120 580"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+            />
+            <!-- saveResults -> END -->
+            <path
+              d="M 120 650 L 120 680"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+            />
+            <!-- checkLimits -> saveResults (budget exceeded) -->
+            <path
+              d="M 350 455 L 350 620 L 230 620"
+              stroke="#0d9488"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowBrand)"
+              stroke-dasharray="4 3"
+            />
+            <text
+              x="358"
+              y="540"
+              font-size="10"
+              fill="#dc2626"
+              font-weight="500"
+            >
+              超限退出
+            </text>
+          </svg>
+
+          <!-- START node -->
+          <div
+            class="graph-terminal"
+            style="
+              left: 96px;
+              top: 24px;
+              background: linear-gradient(135deg, #14b8a6, #0d9488);
+              color: #fff;
+            "
+          >
+            <span class="text-[11px]">START</span>
+          </div>
+
+          <!-- planner -->
+          <div
+            class="graph-node bound selected"
+            style="left: 10px; top: 90px"
+            data-key="planner"
+            onclick="selectNode('planner')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                >
+                  <path d="M12 20h9" />
+                  <path
+                    d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"
+                  />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink">planner</span>
+              <span class="badge badge-tool ml-auto text-[10px]">Prompt</span>
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              ReAct 规划器，自主选择采集工具
+            </p>
+          </div>
+
+          <!-- tools -->
+          <div
+            class="graph-node bound"
+            style="left: 240px; top: 175px"
+            data-key="tools"
+            onclick="selectNode('tools')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                  />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink">tools</span>
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              ToolNode 执行 LLM 选择的工具
+            </p>
+          </div>
+
+          <!-- processToolResults -->
+          <div
+            class="graph-node bound"
+            style="left: 240px; top: 280px"
+            data-key="processToolResults"
+            onclick="selectNode('processToolResults')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink"
+                >processToolResults</span
+              >
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              提取 items 并压缩消息历史
+            </p>
+          </div>
+
+          <!-- checkLimits -->
+          <div
+            class="graph-node bound"
+            style="left: 240px; top: 385px"
+            data-key="checkLimits"
+            onclick="selectNode('checkLimits')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                >
+                  <path d="M12 9v4" />
+                  <path
+                    d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636-2.87L13.637 3.59a1.914 1.914 0 0 0-3.274 0z"
+                  />
+                  <path d="M12 17h.01" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink"
+                >checkLimits</span
+              >
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              检查迭代和 Token 边界
+            </p>
+          </div>
+
+          <!-- analyzer -->
+          <div
+            class="graph-node bound"
+            style="left: 10px; top: 340px"
+            data-key="analyzer"
+            onclick="selectNode('analyzer')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                >
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink">analyzer</span>
+              <span class="badge badge-tool ml-auto text-[10px]">Prompt</span>
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              评分内容相关性和热度
+            </p>
+          </div>
+
+          <!-- topicGenerator -->
+          <div
+            class="graph-node bound"
+            style="left: 10px; top: 475px"
+            data-key="topicGenerator"
+            onclick="selectNode('topicGenerator')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-warm-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#f59e0b"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"
+                  />
+                  <path d="M9 18h6" />
+                  <path d="M10 22h4" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink"
+                >topicGenerator</span
+              >
+              <span class="badge badge-tool ml-auto text-[10px]">Prompt</span>
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              从分析结果生成选题建议
+            </p>
+          </div>
+
+          <!-- saveResults -->
+          <div
+            class="graph-node bound"
+            style="left: 10px; top: 580px"
+            data-key="saveResults"
+            onclick="selectNode('saveResults')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#8da5a2"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                  />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink"
+                >saveResults</span
+              >
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              将结果持久化到数据库
+            </p>
+          </div>
+
+          <!-- Skeleton: humanReview -->
+          <div
+            class="graph-node skeleton"
+            style="left: 240px; top: 505px"
+            data-key="humanReview"
+            onclick="selectNode('humanReview')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#c5d5d3"
+                  stroke-width="2"
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-medium text-ink-tertiary"
+                >humanReview</span
+              >
+              <span class="badge badge-warn ml-auto text-[10px]">未实现</span>
+            </div>
+            <p class="text-[11px] text-ink-faint truncate">
+              人工审核（Phase 2）
+            </p>
+          </div>
+
+          <!-- END node -->
+          <div
+            class="graph-terminal"
+            style="left: 96px; top: 680px; background: #e2e8e7; color: #4b6563"
+          >
+            <span class="text-[11px]">END</span>
+          </div>
+        </div>
+
+        <!-- Run/Replay Canvas (hidden by default) -->
+        <div id="canvasRun" class="absolute inset-0 hidden">
+          <!-- SVG Edges for replay mode -->
+          <svg class="absolute inset-0 w-full h-full" style="z-index: 1">
+            <defs>
+              <marker
+                id="arrowBrandR"
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 8 3, 0 6" fill="#0d9488" />
+              </marker>
+              <marker
+                id="arrowDim"
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 8 3, 0 6" fill="#e2e8e7" />
+              </marker>
+            </defs>
+            <!-- START -> planner (executed) -->
+            <path
+              d="M 120 60 L 120 90"
+              stroke="#0d9488"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#arrowBrandR)"
+            />
+            <!-- planner -> tools (executed) -->
+            <path
+              d="M 230 140 L 350 140 L 350 175"
+              stroke="#0d9488"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#arrowBrandR)"
+            />
+            <text
+              x="268"
+              y="133"
+              font-size="10"
+              fill="#0d9488"
+              font-weight="500"
+            >
+              有 tool_calls
+            </text>
+            <!-- planner -> analyzer (not yet) -->
+            <path
+              d="M 120 180 L 120 340"
+              stroke="#e2e8e7"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowDim)"
+              stroke-dasharray="4 3"
+            />
+            <!-- tools -> processToolResults (executed) -->
+            <path
+              d="M 350 245 L 350 280"
+              stroke="#0d9488"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#arrowBrandR)"
+            />
+            <!-- processToolResults -> checkLimits (executing) -->
+            <path
+              d="M 350 350 L 350 385"
+              stroke="#2563eb"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#arrowBrandR)"
+            />
+            <!-- checkLimits -> planner (dim) -->
+            <path
+              d="M 460 420 L 520 420 L 520 140 L 230 140"
+              stroke="#e2e8e7"
+              stroke-width="1.5"
+              fill="none"
+              stroke-dasharray="4 3"
+            />
+            <!-- checkLimits -> analyzer (dim) -->
+            <path
+              d="M 240 420 L 120 420 L 120 400"
+              stroke="#e2e8e7"
+              stroke-width="1.5"
+              fill="none"
+              stroke-dasharray="4 3"
+            />
+            <!-- analyzer -> topicGenerator (dim) -->
+            <path
+              d="M 120 410 L 120 475"
+              stroke="#e2e8e7"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowDim)"
+              stroke-dasharray="4 3"
+            />
+            <!-- topicGenerator -> saveResults (dim) -->
+            <path
+              d="M 120 545 L 120 580"
+              stroke="#e2e8e7"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowDim)"
+              stroke-dasharray="4 3"
+            />
+            <!-- saveResults -> END (dim) -->
+            <path
+              d="M 120 650 L 120 680"
+              stroke="#e2e8e7"
+              stroke-width="1.5"
+              fill="none"
+              marker-end="url(#arrowDim)"
+              stroke-dasharray="4 3"
+            />
+            <!-- checkLimits -> saveResults (dim) -->
+            <path
+              d="M 350 455 L 350 620 L 230 620"
+              stroke="#e2e8e7"
+              stroke-width="1.5"
+              fill="none"
+              stroke-dasharray="4 3"
+            />
+          </svg>
+
+          <!-- START -->
+          <div
+            class="graph-terminal"
+            style="
+              left: 96px;
+              top: 24px;
+              background: linear-gradient(135deg, #14b8a6, #0d9488);
+              color: #fff;
+            "
+          >
+            <span class="text-[11px]">START</span>
+          </div>
+
+          <!-- planner (executed, step 1) -->
+          <div
+            class="graph-node executed"
+            style="left: 10px; top: 90px"
+            data-key="planner"
+            onclick="selectRunNode('planner')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                >
+                  <path d="M12 20h9" />
+                  <path
+                    d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"
+                  />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink">planner</span>
+              <span class="badge badge-ok ml-auto text-[10px]">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path d="m5 12 5 5L20 7" />
+                </svg>
+                #1
+              </span>
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              ReAct 规划器，自主选择采集工具
+            </p>
+            <div
+              class="flex items-center gap-3 mt-2 text-[10px] text-ink-tertiary"
+            >
+              <span>1.2s</span>
+              <span>3.4k tokens</span>
+            </div>
+          </div>
+
+          <!-- tools (executed, step 2) -->
+          <div
+            class="graph-node executed"
+            style="left: 240px; top: 175px"
+            data-key="tools"
+            onclick="selectRunNode('tools')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                  />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink">tools</span>
+              <span class="badge badge-ok ml-auto text-[10px]">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path d="m5 12 5 5L20 7" />
+                </svg>
+                #2
+              </span>
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              ToolNode 执行 LLM 选择的工具
+            </p>
+            <div
+              class="flex items-center gap-3 mt-2 text-[10px] text-ink-tertiary"
+            >
+              <span>4.8s</span>
+              <span>—</span>
+            </div>
+          </div>
+
+          <!-- processToolResults (executed, step 3) -->
+          <div
+            class="graph-node executed"
+            style="left: 240px; top: 280px"
+            data-key="processToolResults"
+            onclick="selectRunNode('processToolResults')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink"
+                >processToolResults</span
+              >
+              <span class="badge badge-ok ml-auto text-[10px]">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path d="m5 12 5 5L20 7" />
+                </svg>
+                #3
+              </span>
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              提取 items 并压缩消息历史
+            </p>
+            <div
+              class="flex items-center gap-3 mt-2 text-[10px] text-ink-tertiary"
+            >
+              <span>0.3s</span>
+              <span>—</span>
+            </div>
+          </div>
+
+          <!-- checkLimits (executing, step 4) -->
+          <div
+            class="graph-node executing"
+            style="left: 240px; top: 385px"
+            data-key="checkLimits"
+            onclick="selectRunNode('checkLimits')"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#2563eb"
+                  stroke-width="2"
+                >
+                  <path d="M12 9v4" />
+                  <path
+                    d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636-2.87L13.637 3.59a1.914 1.914 0 0 0-3.274 0z"
+                  />
+                  <path d="M12 17h.01" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink"
+                >checkLimits</span
+              >
+              <span class="badge badge-run ml-auto text-[10px]">
+                <span
+                  class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"
+                  style="animation: dotPulse 1.5s infinite"
+                ></span>
+                执行中
+              </span>
+            </div>
+            <p class="text-[11px] text-ink-tertiary truncate">
+              检查迭代和 Token 边界
+            </p>
+          </div>
+
+          <!-- analyzer (dimmed) -->
+          <div
+            class="graph-node dimmed"
+            style="left: 10px; top: 340px"
+            data-key="analyzer"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#c5d5d3"
+                  stroke-width="2"
+                >
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink-tertiary"
+                >analyzer</span
+              >
+            </div>
+            <p class="text-[11px] text-ink-faint truncate">
+              评分内容相关性和热度
+            </p>
+          </div>
+
+          <!-- topicGenerator (dimmed) -->
+          <div
+            class="graph-node dimmed"
+            style="left: 10px; top: 475px"
+            data-key="topicGenerator"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#c5d5d3"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"
+                  />
+                  <path d="M9 18h6" />
+                  <path d="M10 22h4" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink-tertiary"
+                >topicGenerator</span
+              >
+            </div>
+            <p class="text-[11px] text-ink-faint truncate">
+              从分析结果生成选题建议
+            </p>
+          </div>
+
+          <!-- saveResults (dimmed) -->
+          <div
+            class="graph-node dimmed"
+            style="left: 10px; top: 580px"
+            data-key="saveResults"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <div
+                class="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#c5d5d3"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                  />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+              </div>
+              <span class="text-[13px] font-semibold text-ink-tertiary"
+                >saveResults</span
+              >
+            </div>
+            <p class="text-[11px] text-ink-faint truncate">
+              将结果持久化到数据库
+            </p>
+          </div>
+
+          <!-- END -->
+          <div
+            class="graph-terminal"
+            style="left: 96px; top: 680px; background: #e2e8e7; color: #4b6563"
+          >
+            <span class="text-[11px]">END</span>
+          </div>
+        </div>
+
+        <!-- Canvas bottom bar -->
+        <div
+          class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white rounded-xl shadow-sm border border-surface-2 px-3 py-1.5 z-10"
+        >
+          <button
+            class="btn-secondary px-2 py-1 rounded-lg text-[12px]"
+            title="缩小"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14" />
+            </svg>
+          </button>
+          <span class="text-[11px] text-ink-tertiary font-medium px-1"
+            >100%</span
+          >
+          <button
+            class="btn-secondary px-2 py-1 rounded-lg text-[12px]"
+            title="放大"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
+          </button>
+          <div class="w-px h-4 bg-surface-3 mx-1"></div>
+          <button
+            class="btn-secondary px-2 py-1 rounded-lg text-[12px]"
+            title="适应画布"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M15 3h6v6" />
+              <path d="M9 21H3v-6" />
+              <path d="M21 3l-7 7" />
+              <path d="M3 21l7-7" />
+            </svg>
+          </button>
+        </div>
+      </main>
+
+      <!-- ===== RIGHT PANEL (400px) ===== -->
+      <aside
+        id="rightPanel"
+        class="w-[400px] shrink-0 bg-white border-l border-surface-2 flex flex-col overflow-hidden"
+      >
+        <!-- Blueprint Right: Node Properties -->
+        <div id="rightBlueprint" class="flex-1 overflow-y-auto">
+          <div class="p-5 border-b border-surface-2">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                >
+                  <path d="M12 20h9" />
+                  <path
+                    d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2
+                  class="text-[15px] font-semibold text-ink"
+                  id="rightNodeTitle"
+                >
+                  planner
+                </h2>
+                <p class="text-[11px] text-ink-tertiary" id="rightNodeSubtitle">
+                  ReAct 规划器
+                </p>
+              </div>
+              <button
+                class="btn-secondary ml-auto px-2 py-1.5 rounded-lg"
+                title="编辑属性"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M12 20h9" />
+                  <path
+                    d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Node Edit Form -->
+          <div id="rightNodeForm" class="p-5 space-y-5">
+            <!-- Name -->
+            <div>
+              <label
+                class="text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider block mb-1.5"
+                >节点名称</label
+              >
+              <input
+                type="text"
+                value="planner"
+                class="w-full text-[13px] rounded-xl bg-surface-1 border border-surface-3 px-4 py-2.5 text-ink outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400"
+              />
+            </div>
+            <!-- Description -->
+            <div>
+              <label
+                class="text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider block mb-1.5"
+                >描述</label
+              >
+              <textarea
+                class="w-full h-16 text-[13px] rounded-xl bg-surface-1 border border-surface-3 px-4 py-2.5 text-ink outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 resize-none"
+              >
+ReAct 规划器，使用 ChatOpenAI.bindTools() 自主选择采集工具</textarea
+              >
+            </div>
+            <!-- Icon -->
+            <div>
+              <label
+                class="text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider block mb-1.5"
+                >图标</label
+              >
+              <div class="grid grid-cols-8 gap-2">
+                <div
+                  class="w-8 h-8 rounded-lg bg-brand-50 border-2 border-brand-500 flex items-center justify-center cursor-pointer"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0d9488"
+                    stroke-width="2"
+                  >
+                    <path d="M12 20h9" />
+                    <path
+                      d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"
+                    />
+                  </svg>
+                </div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-1 border border-surface-3 flex items-center justify-center cursor-pointer hover:border-brand-300"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#4b6563"
+                    stroke-width="2"
+                  >
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-1 border border-surface-3 flex items-center justify-center cursor-pointer hover:border-brand-300"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#4b6563"
+                    stroke-width="2"
+                  >
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-1 border border-surface-3 flex items-center justify-center cursor-pointer hover:border-brand-300"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#4b6563"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"
+                    />
+                    <path d="M9 18h6" />
+                    <path d="M10 22h4" />
+                  </svg>
+                </div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-1 border border-surface-3 flex items-center justify-center cursor-pointer hover:border-brand-300"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#4b6563"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                    />
+                  </svg>
+                </div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-1 border border-surface-3 flex items-center justify-center cursor-pointer hover:border-brand-300"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#4b6563"
+                    stroke-width="2"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
+                </div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-1 border border-surface-3 flex items-center justify-center cursor-pointer hover:border-brand-300"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#4b6563"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                    />
+                  </svg>
+                </div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-1 border border-surface-3 flex items-center justify-center cursor-pointer hover:border-brand-300"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#4b6563"
+                    stroke-width="2"
+                  >
+                    <path d="M12 3v12" />
+                    <path d="m8 11 4 4 4-4" />
+                    <path
+                      d="M8 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <!-- Color -->
+            <div>
+              <label
+                class="text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider block mb-1.5"
+                >颜色</label
+              >
+              <div class="flex gap-2.5">
+                <div class="color-dot active" style="background: #0d9488"></div>
+                <div class="color-dot" style="background: #2563eb"></div>
+                <div class="color-dot" style="background: #f59e0b"></div>
+                <div class="color-dot" style="background: #8b5cf6"></div>
+                <div class="color-dot" style="background: #ec4899"></div>
+                <div class="color-dot" style="background: #059669"></div>
+                <div class="color-dot" style="background: #8da5a2"></div>
+              </div>
+            </div>
+
+            <div class="h-px bg-surface-2"></div>
+
+            <!-- Prompt Editor Section -->
+            <div id="promptEditorSection">
+              <div class="flex items-center justify-between mb-3">
+                <div
+                  class="text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider"
+                >
+                  Prompt 模板
+                </div>
+                <div class="flex items-center gap-2">
+                  <select
+                    class="text-[11px] rounded-lg bg-surface-1 border border-surface-3 px-2 py-1 text-ink-secondary outline-none"
+                  >
+                    <option>v3 (当前)</option>
+                    <option>v2</option>
+                    <option>v1</option>
+                  </select>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <!-- Left: textarea -->
+                <div class="flex-1">
+                  <textarea class="prompt-textarea h-[200px]">
+你是一个内容采集规划器 (Content Fetch Planner)。
+
+你的任务是根据用户的内容方向指令，规划并执行内容采集策略。
+
+## 当前状态
+{status}
+
+## 你可以使用的工具
+- fetchDevto: 从 dev.to 获取技术文章
+- fetchUrl: 通过 Jina Reader 获取任意 URL 内容
+- fetchJuejin: 从掘金获取中文技术文章
+- fetchZhihu: 从知乎获取热门讨论
+
+## 决策规则
+1. 优先采集与用户指令最相关的平台
+2. 每轮选择 1-3 个工具并行调用
+3. 避免重复采集相同的来源
+4. 当 collectedItems >= 20 或迭代次数达到上限时，停止采集并返回文本总结</textarea
+                  >
+                </div>
+                <!-- Right: placeholders & temp -->
+                <div class="w-[130px] shrink-0 space-y-3">
+                  <div>
+                    <div
+                      class="text-[10px] font-semibold text-ink-tertiary uppercase tracking-wider mb-1"
+                    >
+                      占位符
+                    </div>
+                    <div class="space-y-1">
+                      <div
+                        class="text-[11px] bg-brand-50 text-brand-700 px-2 py-1 rounded-md font-mono"
+                      >
+                        {status}
+                      </div>
+                    </div>
+                    <p class="text-[10px] text-ink-faint mt-1">
+                      运行时状态注入：采集数、分析数、迭代数、Token 用量
+                    </p>
+                  </div>
+                  <div>
+                    <div
+                      class="text-[10px] font-semibold text-ink-tertiary uppercase tracking-wider mb-1"
+                    >
+                      Temperature
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="30"
+                        class="flex-1"
+                      />
+                      <span
+                        class="text-[12px] text-ink-secondary font-mono w-8 text-right"
+                        >0.3</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 mt-3">
+                <button
+                  class="btn-primary px-4 py-2 rounded-xl text-[12px] font-medium"
+                >
+                  保存为新版本
+                </button>
+                <button
+                  class="btn-secondary px-4 py-2 rounded-xl text-[12px] font-medium"
+                >
+                  激活此版本
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skeleton Node Panel (hidden) -->
+        <div id="rightSkeleton" class="flex-1 overflow-y-auto hidden">
+          <div class="p-5 border-b border-surface-2">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-9 h-9 rounded-xl bg-surface-2 flex items-center justify-center"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#c5d5d3"
+                  stroke-width="2"
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
+              </div>
+              <div>
+                <h2
+                  class="text-[15px] font-semibold text-ink-tertiary"
+                  id="skeletonTitle"
+                >
+                  humanReview
+                </h2>
+                <p class="text-[11px] text-ink-faint">未实现节点</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-5">
+            <div
+              class="rounded-xl border-2 border-dashed border-surface-3 bg-surface-1 p-6 text-center"
+            >
+              <div
+                class="w-12 h-12 rounded-full bg-warm-50 flex items-center justify-center mx-auto mb-3"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#f59e0b"
+                  stroke-width="2"
+                >
+                  <path d="M12 9v4" />
+                  <path
+                    d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636-2.87L13.637 3.59a1.914 1.914 0 0 0-3.274 0z"
+                  />
+                  <path d="M12 17h.01" />
+                </svg>
+              </div>
+              <h3 class="text-[14px] font-semibold text-ink mb-1">
+                等待代码实现
+              </h3>
+              <p class="text-[12px] text-ink-tertiary mb-4">
+                该节点已在图模板中定义，但尚未绑定实际执行代码。
+              </p>
+              <div
+                class="text-left bg-white rounded-lg border border-surface-3 p-3"
+              >
+                <div
+                  class="text-[10px] font-semibold text-ink-tertiary uppercase tracking-wider mb-2"
+                >
+                  绑定说明
+                </div>
+                <div class="space-y-2 text-[12px] text-ink-secondary">
+                  <div class="flex gap-2">
+                    <span class="text-ink-tertiary">1.</span>
+                    <span
+                      >在
+                      <code
+                        class="text-[11px] bg-surface-1 px-1.5 py-0.5 rounded text-brand-700"
+                        >nodes/</code
+                      >
+                      目录创建节点文件</span
+                    >
+                  </div>
+                  <div class="flex gap-2">
+                    <span class="text-ink-tertiary">2.</span>
+                    <span
+                      >导出符合
+                      <code
+                        class="text-[11px] bg-surface-1 px-1.5 py-0.5 rounded text-brand-700"
+                        >NodeFn</code
+                      >
+                      签名的函数</span
+                    >
+                  </div>
+                  <div class="flex gap-2">
+                    <span class="text-ink-tertiary">3.</span>
+                    <span
+                      >在
+                      <code
+                        class="text-[11px] bg-surface-1 px-1.5 py-0.5 rounded text-brand-700"
+                        >graph.ts</code
+                      >
+                      中注册到 StateGraph</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 p-2 rounded-lg bg-surface-1">
+                <div class="text-[10px] text-ink-tertiary">节点 Key</div>
+                <div
+                  class="text-[13px] font-mono text-ink font-medium"
+                  id="skeletonKey"
+                >
+                  humanReview
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Run Right: Step Details -->
+        <div id="rightRun" class="flex-1 overflow-y-auto hidden">
+          <div class="p-5 border-b border-surface-2">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9488"
+                  stroke-width="2"
+                >
+                  <path d="M12 20h9" />
+                  <path
+                    d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-[15px] font-semibold text-ink">
+                  步骤详情 -- planner #1
+                </h2>
+                <div class="flex items-center gap-3 mt-0.5">
+                  <span
+                    class="text-[11px] text-ink-tertiary flex items-center gap-1"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    1.2s
+                  </span>
+                  <span
+                    class="text-[11px] text-ink-tertiary flex items-center gap-1"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="8" cy="21" r="1" />
+                      <circle cx="19" cy="21" r="1" />
+                      <path
+                        d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"
+                      />
+                    </svg>
+                    3,412 tokens
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-5 space-y-5">
+            <!-- Output -->
+            <div>
+              <div
+                class="text-[10px] font-semibold text-ink-tertiary uppercase tracking-wider mb-2"
+              >
+                输出
+              </div>
+
+              <!-- Reasoning text -->
+              <div
+                class="rounded-xl bg-surface-1 border border-surface-3 p-4 mb-3"
+              >
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-medium text-ink-secondary"
+                    >推理过程</span
+                  >
+                  <button class="text-[11px] text-brand-600 font-medium">
+                    展开
+                  </button>
+                </div>
+                <p
+                  class="text-[12px] text-ink-secondary leading-relaxed line-clamp-3"
+                >
+                  根据用户指令"关注 Rust 和 WebAssembly
+                  在前端工具链中的应用"，我需要从多个平台采集相关技术内容。首先从
+                  dev.to 搜索 Rust + WASM 相关标签，同时用 Jina Reader
+                  获取掘金上的相关热门文章。这个方向在英文社区讨论较多...
+                </p>
+              </div>
+
+              <!-- Tool calls -->
+              <div class="text-[11px] font-medium text-ink-secondary mb-2">
+                工具调用
+              </div>
+              <div class="space-y-2">
+                <div
+                  class="flex items-center gap-2 p-2.5 rounded-lg bg-brand-50 border border-brand-100"
+                >
+                  <div
+                    class="w-6 h-6 rounded-md bg-white flex items-center justify-center"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#0d9488"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                      />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <span class="badge badge-tool">fetchDevto</span>
+                    <span class="text-[11px] text-ink-tertiary ml-2"
+                      >tag: "rust", "webassembly"</span
+                    >
+                  </div>
+                  <span class="badge badge-ok text-[10px]">12 items</span>
+                </div>
+                <div
+                  class="flex items-center gap-2 p-2.5 rounded-lg bg-brand-50 border border-brand-100"
+                >
+                  <div
+                    class="w-6 h-6 rounded-md bg-white flex items-center justify-center"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#0d9488"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                      />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <span class="badge badge-tool">fetchUrl</span>
+                    <span class="text-[11px] text-ink-tertiary ml-2"
+                      >juejin.cn/tag/Rust</span
+                    >
+                  </div>
+                  <span class="badge badge-ok text-[10px]">8 items</span>
+                </div>
+                <div
+                  class="flex items-center gap-2 p-2.5 rounded-lg bg-surface-1 border border-surface-3"
+                >
+                  <div
+                    class="w-6 h-6 rounded-md bg-white flex items-center justify-center"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#8da5a2"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                      />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <span
+                      class="badge badge-tool"
+                      style="background: #f1f5f4; color: #8da5a2"
+                      >fetchZhihu</span
+                    >
+                    <span class="text-[11px] text-ink-tertiary ml-2"
+                      >hot/wasm</span
+                    >
+                  </div>
+                  <span
+                    class="badge"
+                    style="background: #fee2e2; color: #dc2626; font-size: 10px"
+                    >超时</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="h-px bg-surface-2"></div>
+
+            <!-- State Snapshot -->
+            <div>
+              <div
+                class="text-[10px] font-semibold text-ink-tertiary uppercase tracking-wider mb-2"
+              >
+                State 快照
+              </div>
+              <div
+                class="rounded-xl bg-surface-1 border border-surface-3 divide-y divide-surface-3"
+              >
+                <div class="flex items-center justify-between px-4 py-2.5">
+                  <span class="text-[12px] text-ink-secondary"
+                    >collectedItems</span
+                  >
+                  <span class="text-[13px] font-semibold text-ink">23</span>
+                </div>
+                <div class="flex items-center justify-between px-4 py-2.5">
+                  <span class="text-[12px] text-ink-secondary"
+                    >analyzedItems</span
+                  >
+                  <span class="text-[13px] font-semibold text-ink-tertiary"
+                    >0</span
+                  >
+                </div>
+                <div class="flex items-center justify-between px-4 py-2.5">
+                  <span class="text-[12px] text-ink-secondary">iteration</span>
+                  <span class="text-[13px] font-semibold text-ink">2</span>
+                </div>
+                <div class="flex items-center justify-between px-4 py-2.5">
+                  <span class="text-[12px] text-ink-secondary">tokensUsed</span>
+                  <span class="text-[13px] font-semibold text-ink">12.4k</span>
+                </div>
+                <div class="flex items-center justify-between px-4 py-2.5">
+                  <span class="text-[12px] text-ink-secondary"
+                    >tokenBudget</span
+                  >
+                  <span class="text-[13px] font-semibold text-ink-tertiary"
+                    >100k</span
+                  >
+                </div>
+                <div class="flex items-center justify-between px-4 py-2.5">
+                  <span class="text-[12px] text-ink-secondary"
+                    >failedSources</span
+                  >
+                  <span class="text-[12px] font-mono text-ink-tertiary"
+                    >["zhihu"]</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ========== JAVASCRIPT ========== -->
+    <script>
+      // ---- Mode Switching ----
+      let currentMode = 'blueprint';
+
+      function switchMode(mode) {
+        currentMode = mode;
+        // Update tabs
+        document.querySelectorAll('.mode-tab').forEach((tab) => {
+          tab.classList.toggle('active', tab.dataset.mode === mode);
+        });
+        // Toggle left panels
+        document
+          .getElementById('leftBlueprint')
+          .classList.toggle('hidden', mode !== 'blueprint');
+        document
+          .getElementById('leftRun')
+          .classList.toggle('hidden', mode !== 'run');
+        // Toggle canvas
+        document
+          .getElementById('canvasBlueprint')
+          .classList.toggle('hidden', mode !== 'blueprint');
+        document
+          .getElementById('canvasRun')
+          .classList.toggle('hidden', mode !== 'run');
+        // Toggle right panels
+        document
+          .getElementById('rightBlueprint')
+          .classList.toggle('hidden', mode !== 'blueprint');
+        document.getElementById('rightSkeleton').classList.add('hidden');
+        document
+          .getElementById('rightRun')
+          .classList.toggle('hidden', mode !== 'run');
+      }
+
+      // ---- Node Data ----
+      const nodeData = {
+        planner: {
+          title: 'planner',
+          subtitle: 'ReAct 规划器',
+          hasPrompt: true,
+          skeleton: false,
+        },
+        tools: {
+          title: 'tools',
+          subtitle: '工具执行器 (ToolNode)',
+          hasPrompt: false,
+          skeleton: false,
+        },
+        processToolResults: {
+          title: 'processToolResults',
+          subtitle: '提取结果',
+          hasPrompt: false,
+          skeleton: false,
+        },
+        checkLimits: {
+          title: 'checkLimits',
+          subtitle: '边界检查',
+          hasPrompt: false,
+          skeleton: false,
+        },
+        analyzer: {
+          title: 'analyzer',
+          subtitle: '内容分析器',
+          hasPrompt: true,
+          skeleton: false,
+        },
+        topicGenerator: {
+          title: 'topicGenerator',
+          subtitle: '选题生成器',
+          hasPrompt: true,
+          skeleton: false,
+        },
+        saveResults: {
+          title: 'saveResults',
+          subtitle: '保存结果',
+          hasPrompt: false,
+          skeleton: false,
+        },
+        humanReview: {
+          title: 'humanReview',
+          subtitle: '人工审核节点',
+          hasPrompt: false,
+          skeleton: true,
+        },
+        enricher: {
+          title: 'enricher',
+          subtitle: '内容丰富器',
+          hasPrompt: false,
+          skeleton: true,
+        },
+      };
+
+      // ---- Blueprint: Select Node ----
+      function selectNode(key) {
+        if (currentMode !== 'blueprint') return;
+        const data = nodeData[key];
+        if (!data) return;
+
+        // Highlight node on canvas
+        document
+          .querySelectorAll('#canvasBlueprint .graph-node')
+          .forEach((n) => {
+            n.classList.toggle('selected', n.dataset.key === key);
+          });
+
+        if (data.skeleton) {
+          // Show skeleton panel
+          document.getElementById('rightBlueprint').classList.add('hidden');
+          document.getElementById('rightSkeleton').classList.remove('hidden');
+          document.getElementById('skeletonTitle').textContent = data.title;
+          document.getElementById('skeletonKey').textContent = data.title;
+        } else {
+          // Show node form panel
+          document.getElementById('rightSkeleton').classList.add('hidden');
+          document.getElementById('rightBlueprint').classList.remove('hidden');
+          document.getElementById('rightNodeTitle').textContent = data.title;
+          document.getElementById('rightNodeSubtitle').textContent =
+            data.subtitle;
+          // Show/hide prompt editor
+          document.getElementById('promptEditorSection').style.display =
+            data.hasPrompt ? 'block' : 'none';
+        }
+      }
+
+      // ---- Run Mode: Select Node ----
+      function selectRunNode(key) {
+        if (currentMode !== 'run') return;
+        // Highlight node on run canvas
+        document.querySelectorAll('#canvasRun .graph-node').forEach((n) => {
+          if (n.dataset.key) {
+            n.classList.toggle('selected', n.dataset.key === key);
+          }
+        });
+      }
+
+      // ---- Run History: Select ----
+      function selectRun(el) {
+        document.querySelectorAll('.run-card').forEach((c) => {
+          if (!c.classList.contains('running')) {
+            c.classList.remove('selected');
+          }
+        });
+        if (!el.classList.contains('running')) {
+          el.classList.add('selected');
+        }
+      }
+
+      // ---- Run Button: Disable when empty ----
+      const runInput = document.getElementById('runInput');
+      const runBtn = document.getElementById('runBtn');
+      if (runInput && runBtn) {
+        runInput.addEventListener('input', () => {
+          runBtn.disabled = runInput.value.trim().length === 0;
+        });
+      }
+
+      // ---- Color dots ----
+      document.querySelectorAll('.color-dot').forEach((dot) => {
+        dot.addEventListener('click', () => {
+          document
+            .querySelectorAll('.color-dot')
+            .forEach((d) => d.classList.remove('active'));
+          dot.classList.add('active');
+        });
+      });
+    </script>
+  </body>
+</html>
