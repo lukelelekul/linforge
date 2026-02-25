@@ -187,4 +187,37 @@ describe('RunManager', () => {
 
     expect(onCompleted).toHaveBeenCalledWith('run-6', { answer: 42 });
   });
+
+  it('metadata 透传到 RunRecord', async () => {
+    const graph = createMockGraph({ delay: 10 });
+
+    manager.startRun(graph as any, {
+      runId: 'run-meta',
+      graphSlug: 'test-graph',
+      input: { instruction: '测试' },
+      store,
+      metadata: { userId: 'user-123', tenantId: 'org-456' },
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    const run = await store.getRun('run-meta');
+    expect(run?.metadata).toEqual({ userId: 'user-123', tenantId: 'org-456' });
+  });
+
+  it('未传 metadata 时 RunRecord 不含 metadata 字段', async () => {
+    const graph = createMockGraph({ delay: 10 });
+
+    manager.startRun(graph as any, {
+      runId: 'run-no-meta',
+      graphSlug: 'test-graph',
+      input: { instruction: '测试' },
+      store,
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    const run = await store.getRun('run-no-meta');
+    expect(run?.metadata).toBeUndefined();
+  });
 });

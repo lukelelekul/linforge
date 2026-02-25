@@ -17,12 +17,23 @@ export class MemoryRunStore implements RunStore {
 
   async listRuns(
     graphSlug: string,
-    opts?: { limit?: number; offset?: number },
+    opts?: { limit?: number; offset?: number; metadata?: Record<string, unknown> },
   ): Promise<RunRecord[]> {
-    const { limit = 20, offset = 0 } = opts ?? {};
-    const matched = Array.from(this.runs.values())
-      .filter((r) => r.graphSlug === graphSlug)
-      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    const { limit = 20, offset = 0, metadata } = opts ?? {};
+    let matched = Array.from(this.runs.values())
+      .filter((r) => r.graphSlug === graphSlug);
+
+    // metadata 过滤：所有指定的 key-value 必须匹配
+    if (metadata) {
+      matched = matched.filter((r) => {
+        if (!r.metadata) return false;
+        return Object.entries(metadata).every(
+          ([key, value]) => r.metadata![key] === value,
+        );
+      });
+    }
+
+    matched.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
     return matched.slice(offset, offset + limit);
   }
 

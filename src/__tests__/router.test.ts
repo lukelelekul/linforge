@@ -1034,6 +1034,92 @@ describe('mountRoutes', () => {
       const res = await fetch(`${baseURL}/linforge/graph/test-agent/runs`);
       expect(res.status).toBe(501);
     });
+
+    it('meta.* query 参数过滤 metadata', async () => {
+      const runStore = new MemoryRunStore();
+      await runStore.createRun({
+        id: 'run-u1',
+        graphSlug: 'test-agent',
+        status: 'completed',
+        metadata: { userId: 'user-123', source: 'web' },
+        tokensUsed: 0,
+        startedAt: new Date('2026-02-23T10:00:00Z'),
+      });
+      await runStore.createRun({
+        id: 'run-u2',
+        graphSlug: 'test-agent',
+        status: 'completed',
+        metadata: { userId: 'user-456', source: 'api' },
+        tokensUsed: 0,
+        startedAt: new Date('2026-02-23T11:00:00Z'),
+      });
+      await runStore.createRun({
+        id: 'run-u3',
+        graphSlug: 'test-agent',
+        status: 'completed',
+        tokensUsed: 0,
+        startedAt: new Date('2026-02-23T12:00:00Z'),
+      });
+
+      ({ baseURL, cleanup } = await createTestServer({ runStore }));
+
+      // 按 userId 过滤
+      const res = await fetch(
+        `${baseURL}/linforge/graph/test-agent/runs?meta.userId=user-123`,
+      );
+      const data = await res.json();
+      expect(data.runs).toHaveLength(1);
+      expect(data.runs[0].id).toBe('run-u1');
+    });
+
+    it('多个 meta.* 条件同时过滤', async () => {
+      const runStore = new MemoryRunStore();
+      await runStore.createRun({
+        id: 'run-m1',
+        graphSlug: 'test-agent',
+        status: 'completed',
+        metadata: { userId: 'user-123', source: 'web' },
+        tokensUsed: 0,
+        startedAt: new Date('2026-02-23T10:00:00Z'),
+      });
+      await runStore.createRun({
+        id: 'run-m2',
+        graphSlug: 'test-agent',
+        status: 'completed',
+        metadata: { userId: 'user-123', source: 'api' },
+        tokensUsed: 0,
+        startedAt: new Date('2026-02-23T11:00:00Z'),
+      });
+
+      ({ baseURL, cleanup } = await createTestServer({ runStore }));
+
+      const res = await fetch(
+        `${baseURL}/linforge/graph/test-agent/runs?meta.userId=user-123&meta.source=web`,
+      );
+      const data = await res.json();
+      expect(data.runs).toHaveLength(1);
+      expect(data.runs[0].id).toBe('run-m1');
+    });
+
+    it('无匹配 metadata 时返回空列表', async () => {
+      const runStore = new MemoryRunStore();
+      await runStore.createRun({
+        id: 'run-x',
+        graphSlug: 'test-agent',
+        status: 'completed',
+        metadata: { userId: 'user-123' },
+        tokensUsed: 0,
+        startedAt: new Date(),
+      });
+
+      ({ baseURL, cleanup } = await createTestServer({ runStore }));
+
+      const res = await fetch(
+        `${baseURL}/linforge/graph/test-agent/runs?meta.userId=nonexistent`,
+      );
+      const data = await res.json();
+      expect(data.runs).toHaveLength(0);
+    });
   });
 
   describe('GET /linforge/runs/:runId', () => {

@@ -224,6 +224,8 @@ export interface RunRecord {
   input?: Record<string, unknown>;
   /** Run result (generic JSON) */
   result?: Record<string, unknown>;
+  /** 业务上下文透传（userId, tenantId, source 等） */
+  metadata?: Record<string, unknown>;
   tokensUsed: number;
   startedAt: Date;
   finishedAt?: Date;
@@ -237,7 +239,7 @@ export interface RunStore {
   /** List run history for a graph (paginated) */
   listRuns(
     graphSlug: string,
-    opts?: { limit?: number; offset?: number },
+    opts?: { limit?: number; offset?: number; metadata?: Record<string, unknown> },
   ): Promise<RunRecord[]>;
   /** Update run status */
   updateRunStatus(
@@ -313,6 +315,8 @@ export interface RunOptions {
   storeInput?: Record<string, unknown>;
   store?: RunStore;
   callbacks?: RunCallbacks;
+  /** 业务上下文透传，写入 RunRecord.metadata */
+  metadata?: Record<string, unknown>;
   /** Timeout in milliseconds, defaults to 300000 (5 min) */
   timeoutMs?: number;
 }

@@ -30,6 +30,7 @@ export class RunManager {
       storeInput,
       store,
       callbacks,
+      metadata,
       timeoutMs = 300_000,
     } = options;
 
@@ -53,6 +54,7 @@ export class RunManager {
             graphSlug,
             status: 'running',
             input: storeInput ?? input,
+            ...(metadata && { metadata }),
             tokensUsed: 0,
             startedAt: new Date(),
           });

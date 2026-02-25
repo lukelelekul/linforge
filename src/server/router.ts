@@ -63,7 +63,11 @@ export interface MountRoutesOptions {
  * - GET  {prefix}/templates                  — Available template list
  * - POST {prefix}/graph/:slug/apply-template — Apply template to graph
  */
-export function mountRoutes(app: Koa, options: MountRoutesOptions): void {
+/**
+ * 创建 Linforge Router 实例（不挂载到 app）。
+ * 供 mountRoutes() 和 linforgeMiddleware() 共用。
+ */
+export function createLinforgeRouter(options: MountRoutesOptions): Router {
   const {
     registry,
     compiler,
@@ -298,6 +302,10 @@ export function mountRoutes(app: Koa, options: MountRoutesOptions): void {
 
     const instruction = body.instruction as string;
     const runId = (body.runId as string) || crypto.randomUUID();
+    const metadata =
+      body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata)
+        ? (body.metadata as Record<string, unknown>)
+        : undefined;
 
     // Get graph definition
     const graphDef = await graphStore.getGraph(slug);
@@ -327,6 +335,7 @@ export function mountRoutes(app: Koa, options: MountRoutesOptions): void {
       input: graphInput,
       storeInput,
       store: runStore,
+      metadata,
     });
 
     ctx.status = 202;
@@ -345,7 +354,20 @@ export function mountRoutes(app: Koa, options: MountRoutesOptions): void {
     const limit = Math.min(Number(ctx.query.limit) || 20, 100);
     const offset = Math.max(Number(ctx.query.offset) || 0, 0);
 
-    const runs = await runStore.listRuns(slug, { limit, offset });
+    // 解析 meta.* query 参数为 metadata 过滤条件
+    const metadataFilter: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(ctx.query)) {
+      if (key.startsWith('meta.') && typeof value === 'string') {
+        metadataFilter[key.slice(5)] = value;
+      }
+    }
+    const hasMetadataFilter = Object.keys(metadataFilter).length > 0;
+
+    const runs = await runStore.listRuns(slug, {
+      limit,
+      offset,
+      ...(hasMetadataFilter && { metadata: metadataFilter }),
+    });
     ctx.body = { runs };
   });
 
@@ -521,6 +543,14 @@ export function mountRoutes(app: Koa, options: MountRoutesOptions): void {
     };
   });
 
+  return router;
+}
+
+/**
+ * Mount Linforge routes onto a Koa application
+ */
+export function mountRoutes(app: Koa, options: MountRoutesOptions): void {
+  const router = createLinforgeRouter(options);
   app.use(router.routes());
   app.use(router.allowedMethods());
 }
