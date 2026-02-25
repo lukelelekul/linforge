@@ -3,7 +3,7 @@
 // Demonstrates the complete Linforge setup:
 //   1. Define a LangGraph StateSchema (with agentRunId for step recording)
 //   2. Create nodes via defineNode() and register them
-//   3. Wire up Memory Stores (swap with DB adapters in production)
+//   3. Wire up Memory Stores (swap with createPrismaStores() in production, see linforge-adapter-prisma)
 //   4. Seed an initial graph definition
 //   5. Start a Koa server with mountRoutes() — one call exposes all APIs
 //

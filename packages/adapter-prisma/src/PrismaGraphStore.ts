@@ -1,5 +1,6 @@
 import type { PrismaClientLike } from './types';
 import type { GraphDefinition, GraphStore } from 'linforge/core';
+import { toJson, fromJson } from './json';
 
 /**
  * Prisma 实现的 GraphStore — 图定义持久化
@@ -17,28 +18,22 @@ export class PrismaGraphStore implements GraphStore {
       slug: row.slug,
       name: row.name,
       icon: row.icon ?? undefined,
-      nodes: row.nodes as GraphDefinition['nodes'],
-      edges: row.edges as GraphDefinition['edges'],
+      nodes: fromJson(row.nodes),
+      edges: fromJson(row.edges),
     };
   }
 
   async saveGraph(graph: GraphDefinition): Promise<void> {
+    const data = {
+      name: graph.name,
+      icon: graph.icon ?? null,
+      nodes: toJson(graph.nodes),
+      edges: toJson(graph.edges),
+    };
     await (this.prisma as any).linforgeGraph.upsert({
       where: { slug: graph.slug },
-      update: {
-        name: graph.name,
-        icon: graph.icon ?? null,
-        nodes: graph.nodes as any,
-        edges: graph.edges as any,
-      },
-      create: {
-        id: graph.id,
-        slug: graph.slug,
-        name: graph.name,
-        icon: graph.icon ?? null,
-        nodes: graph.nodes as any,
-        edges: graph.edges as any,
-      },
+      update: data,
+      create: { id: graph.id, slug: graph.slug, ...data },
     });
   }
 
@@ -51,8 +46,8 @@ export class PrismaGraphStore implements GraphStore {
       slug: row.slug,
       name: row.name,
       icon: row.icon ?? undefined,
-      nodes: row.nodes as GraphDefinition['nodes'],
-      edges: row.edges as GraphDefinition['edges'],
+      nodes: fromJson(row.nodes),
+      edges: fromJson(row.edges),
     }));
   }
 }

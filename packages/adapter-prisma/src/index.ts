@@ -6,3 +6,5 @@ export { PrismaGraphStore } from './PrismaGraphStore';
 export { PrismaRunStore } from './PrismaRunStore';
 export { PrismaStepPersister } from './PrismaStepPersister';
 export { PrismaPromptStore } from './PrismaPromptStore';
+export { createPrismaStores } from './createPrismaStores';
+export type { CreatePrismaStoresOptions, PrismaStores } from './createPrismaStores';

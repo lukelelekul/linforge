@@ -159,6 +159,23 @@ All peer dependencies are optional — install only what you need.
 | `MemoryStepPersister` | In-memory step persister |
 | `MemoryPromptStore`   | In-memory prompt store   |
 
+## Production Persistence
+
+For production use, swap the in-memory stores with the Prisma adapter:
+
+```bash
+npm install linforge-adapter-prisma @prisma/client
+```
+
+```ts
+import { createPrismaStores } from 'linforge-adapter-prisma';
+import { PrismaClient } from '@prisma/client';
+
+const stores = createPrismaStores(new PrismaClient());
+```
+
+See [`linforge-adapter-prisma`](./packages/adapter-prisma/) for setup details.
+
 ## License
 
 [MIT](./LICENSE)

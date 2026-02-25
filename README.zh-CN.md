@@ -174,6 +174,23 @@ Linforge 采用三层架构，兼顾灵活性与可执行性：
 | `MemoryStepPersister` | 内存步骤持久化   |
 | `MemoryPromptStore`   | 内存 Prompt 存储 |
 
+## 生产持久化
+
+生产环境中，使用 Prisma adapter 替换内存 Store：
+
+```bash
+npm install linforge-adapter-prisma @prisma/client
+```
+
+```ts
+import { createPrismaStores } from 'linforge-adapter-prisma';
+import { PrismaClient } from '@prisma/client';
+
+const stores = createPrismaStores(new PrismaClient());
+```
+
+详见 [`linforge-adapter-prisma`](./packages/adapter-prisma/)。
+
 ## 详细设计文档
 
 完整的架构设计和 API 规范请参考 [agent-studio.md](./agent-studio-zh-CN.md)。

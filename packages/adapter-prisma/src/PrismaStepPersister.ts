@@ -1,5 +1,6 @@
 import type { PrismaClientLike } from './types';
 import type { StepData, StepPersister } from 'linforge/core';
+import { toJson, toJsonOrNull, fromJson, fromJsonOrUndefined } from './json';
 
 /**
  * Prisma 实现的 StepPersister — 步骤数据写入/查询
@@ -13,13 +14,13 @@ export class PrismaStepPersister implements StepPersister {
         agentRunId: data.agentRunId,
         nodeId: data.nodeId,
         stepNumber: data.stepNumber,
-        input: data.input as any,
-        output: data.output as any,
+        input: toJson(data.input),
+        output: toJson(data.output),
         durationMs: data.durationMs,
         tokensUsed: data.tokensUsed,
         toolName: data.toolName ?? null,
-        stateBefore: data.stateBefore as any ?? undefined,
-        stateAfter: data.stateAfter as any ?? undefined,
+        stateBefore: toJsonOrNull(data.stateBefore),
+        stateAfter: toJsonOrNull(data.stateAfter),
       },
     });
   }
@@ -35,13 +36,13 @@ export class PrismaStepPersister implements StepPersister {
       agentRunId: row.agentRunId,
       nodeId: row.nodeId,
       stepNumber: row.stepNumber,
-      input: row.input,
-      output: row.output,
+      input: fromJson(row.input),
+      output: fromJson(row.output),
       durationMs: row.durationMs,
       tokensUsed: row.tokensUsed,
       toolName: row.toolName ?? undefined,
-      stateBefore: row.stateBefore ?? undefined,
-      stateAfter: row.stateAfter ?? undefined,
+      stateBefore: fromJsonOrUndefined(row.stateBefore),
+      stateAfter: fromJsonOrUndefined(row.stateAfter),
     }));
   }
 }

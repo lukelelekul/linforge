@@ -1,0 +1,70 @@
+// 测试用 Prisma Schema — SQLite 内存数据库
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./test.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model LinforgeGraph {
+  id        String   @id
+  slug      String   @unique
+  name      String
+  icon      String?
+  nodes     String   // SQLite 不支持 Json，用 String 存 JSON
+  edges     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("linforge_graphs")
+}
+
+model LinforgeRun {
+  id         String    @id
+  graphSlug  String
+  status     String
+  input      String?
+  result     String?
+  metadata   String?
+  tokensUsed Int       @default(0)
+  startedAt  DateTime
+  finishedAt DateTime?
+
+  @@index([graphSlug])
+  @@index([startedAt])
+  @@map("linforge_runs")
+}
+
+model LinforgeStep {
+  id          String  @id @default(cuid())
+  agentRunId  String
+  nodeId      String
+  stepNumber  Int
+  input       String
+  output      String
+  durationMs  Int
+  tokensUsed  Int
+  toolName    String?
+  stateBefore String?
+  stateAfter  String?
+
+  @@index([agentRunId])
+  @@map("linforge_steps")
+}
+
+model LinforgePromptVersion {
+  id          String   @id @default(cuid())
+  nodeId      String
+  version     Int
+  template    String
+  temperature Float
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@unique([nodeId, version])
+  @@index([nodeId])
+  @@map("linforge_prompt_versions")
+}

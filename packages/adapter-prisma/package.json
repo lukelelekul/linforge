@@ -37,7 +37,8 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "prisma:test": "prisma db push --schema=prisma/test.prisma --skip-generate && prisma generate --schema=prisma/test.prisma",
+    "test": "pnpm run prisma:test && vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "pnpm run build && pnpm run test"
   },
@@ -46,7 +47,10 @@
     "@prisma/client": "^6.0.0"
   },
   "devDependencies": {
+    "@prisma/client": "^6.0.0",
+    "@types/node": "^22.0.0",
     "linforge": "workspace:*",
+    "prisma": "^6.0.0",
     "tsup": "^8.5.1",
     "typescript": "^5.8.3",
     "vitest": "^4.0.18"

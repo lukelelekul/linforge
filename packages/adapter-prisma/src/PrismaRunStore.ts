@@ -1,5 +1,6 @@
 import type { PrismaClientLike } from './types';
 import type { RunRecord, RunStore } from 'linforge/core';
+import { toJsonOrNull, fromJsonOrUndefined } from './json';
 
 /**
  * Prisma 实现的 RunStore — 运行记录生命周期管理
@@ -13,9 +14,9 @@ export class PrismaRunStore implements RunStore {
         id: run.id,
         graphSlug: run.graphSlug,
         status: run.status,
-        input: run.input as any ?? undefined,
-        result: run.result as any ?? undefined,
-        metadata: run.metadata as any ?? undefined,
+        input: toJsonOrNull(run.input),
+        result: toJsonOrNull(run.result),
+        metadata: toJsonOrNull(run.metadata),
         tokensUsed: run.tokensUsed,
         startedAt: run.startedAt,
       },
@@ -34,30 +35,29 @@ export class PrismaRunStore implements RunStore {
     graphSlug: string,
     opts?: { limit?: number; offset?: number; metadata?: Record<string, unknown> },
   ): Promise<RunRecord[]> {
-    const { limit = 20, offset = 0, metadata } = opts ?? {};
-
-    // 构建 where 条件
-    const where: any = { graphSlug };
-
-    // metadata JSON 过滤：逐个 key 用 Prisma 的 path 查询
-    if (metadata) {
-      for (const [key, value] of Object.entries(metadata)) {
-        where.metadata = {
-          ...where.metadata,
-          path: [key],
-          equals: value,
-        };
-      }
-    }
+    const { limit = 20, offset = 0 } = opts ?? {};
 
     const rows = await (this.prisma as any).linforgeRun.findMany({
-      where,
+      where: { graphSlug },
       orderBy: { startedAt: 'desc' },
       take: limit,
       skip: offset,
     });
 
-    return rows.map((row: any) => this.toRunRecord(row));
+    let results = rows.map((row: any) => this.toRunRecord(row));
+
+    // metadata 过滤：应用层过滤（SQLite 不支持 JSON path 查询）
+    if (opts?.metadata) {
+      const meta = opts.metadata;
+      results = results.filter((r: RunRecord) => {
+        if (!r.metadata) return false;
+        return Object.entries(meta).every(
+          ([key, value]) => r.metadata![key] === value,
+        );
+      });
+    }
+
+    return results;
   }
 
   async updateRunStatus(
@@ -73,7 +73,7 @@ export class PrismaRunStore implements RunStore {
     }
 
     if (data) {
-      update.result = data as any;
+      update.result = toJsonOrNull(data);
     }
 
     await (this.prisma as any).linforgeRun.update({
@@ -87,9 +87,9 @@ export class PrismaRunStore implements RunStore {
       id: row.id,
       graphSlug: row.graphSlug,
       status: row.status as RunRecord['status'],
-      input: row.input ?? undefined,
-      result: row.result ?? undefined,
-      metadata: row.metadata ?? undefined,
+      input: fromJsonOrUndefined(row.input),
+      result: fromJsonOrUndefined(row.result),
+      metadata: fromJsonOrUndefined(row.metadata),
       tokensUsed: row.tokensUsed,
       startedAt: row.startedAt,
       finishedAt: row.finishedAt ?? undefined,
