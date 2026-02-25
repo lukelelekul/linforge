@@ -1,0 +1,55 @@
+{
+  "name": "linforge-adapter-prisma",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Prisma adapter for Linforge — production-ready Store implementations backed by Prisma ORM",
+  "license": "MIT",
+  "author": "LianBuilds",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lukelelekul/linforge.git",
+    "directory": "packages/adapter-prisma"
+  },
+  "keywords": [
+    "linforge",
+    "prisma",
+    "adapter",
+    "langgraph",
+    "agent"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "prisma",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm run build && pnpm run test"
+  },
+  "peerDependencies": {
+    "linforge": "workspace:*",
+    "@prisma/client": "^6.0.0"
+  },
+  "devDependencies": {
+    "@prisma/client": "^6.0.0",
+    "linforge": "workspace:*",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.18"
+  }
+}
