@@ -189,11 +189,16 @@ No full-screen onboarding page or modal dialogs.
 
 ```
 linforge/core     # Core logic: node registry, graph compiler, template registry,
-                  # step recorder, run manager, prompt loader, store interfaces
-linforge/server   # Backend middleware: API routes (store-interface-based, ORM-agnostic)
+                  # step recorder, run manager, prompt loader, store interfaces,
+                  # type utilities (InferState, InferUpdate, defineNodeFor)
+linforge/server   # Backend middleware: linforgeMiddleware (one-line setup) + mountRoutes (low-level)
 linforge/react    # Frontend components: fine-grained components (GraphCanvas, TemplateList,
                   # NodePool, NodePropertyPanel, RunPanel, PromptEditor, StepDetailPanel,
                   # GraphStatusBar, LinforgeWorkbench, etc.)
+linforge/testing  # In-memory Store implementations (dev / test)
+
+# Adapter packages (separate npm packages in the same monorepo):
+linforge-adapter-prisma  # Production-ready Prisma Store implementations
 ```
 
 ### Developer Code vs Toolkit Code
@@ -574,7 +579,7 @@ interface GraphStatusBarProps {
 
 ### RunRecord — Generic Run Model
 
-Linforge defines a generic run concept at the execution layer. It does not include business-specific fields (e.g., `userId`, `costUsd`). Host-specific fields are handled internally by the adapter.
+Linforge defines a generic run concept at the execution layer. Business-specific context is passed via the `metadata` field.
 
 ```ts
 interface RunRecord {
@@ -583,6 +588,7 @@ interface RunRecord {
   status: 'running' | 'completed' | 'failed' | 'cancelled';
   input?: Record<string, unknown>; // Run input (generic JSON, host decides content)
   result?: Record<string, unknown>; // Run result (generic JSON)
+  metadata?: Record<string, unknown>; // Business context (userId, tenantId, source, etc.)
   tokensUsed: number;
   startedAt: Date;
   finishedAt?: Date;
@@ -597,7 +603,7 @@ interface RunStore {
   getRun(runId: string): Promise<RunRecord | null>;
   listRuns(
     graphSlug: string,
-    opts?: { limit?: number; offset?: number },
+    opts?: { limit?: number; offset?: number; metadata?: Record<string, unknown> },
   ): Promise<RunRecord[]>;
   updateRunStatus(
     runId: string,

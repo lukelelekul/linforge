@@ -14,7 +14,8 @@ Embeddable workbench for [LangGraph](https://langchain-ai.github.io/langgraphjs/
 - **Template system** — 4 built-in graph templates (ReAct, Pipeline, Map-Reduce, Human-in-the-Loop)
 - **Store interface** — pluggable persistence via `GraphStore`, `RunStore`, `StepPersister`, `PromptStore`
 - **One-line integration** — `<LinforgeWorkbench>` component embeds the full workbench in any React app
-- **Koa server routes** — `mountRoutes()` adds 15 REST endpoints for graph, run, prompt, and template management
+- **Run metadata** — pass business context (userId, tenantId, source) through run lifecycle and filter by metadata
+- **Koa server routes** — `linforgeMiddleware()` for one-line setup, or `mountRoutes()` for full control — 16 REST endpoints
 
 ## Quick Start
 
@@ -30,49 +31,43 @@ npm install react react-dom @xyflow/react koa @koa/router
 
 ```ts
 import Koa from 'koa';
-import Router from '@koa/router';
-import {
-  NodeRegistry,
-  defineNode,
-  RunManager,
-  GraphCompiler,
-} from 'linforge/core';
-import { mountRoutes } from 'linforge/server';
-import {
-  MemoryGraphStore,
-  MemoryRunStore,
-  MemoryStepPersister,
-  MemoryPromptStore,
-} from 'linforge/testing';
+import cors from '@koa/cors';
+import bodyParser from 'koa-bodyparser';
+import { StateSchema } from '@langchain/langgraph';
+import { z } from 'zod/v4';
+import { defineNodeFor } from 'linforge/core';
+import { linforgeMiddleware } from 'linforge/server';
 
-// Define nodes
-const greeter = defineNode({
-  name: 'greeter',
-  description: 'Says hello',
-  execute: async (state) => ({ ...state, message: 'Hello!' }),
+// Define state
+const MyState = new StateSchema({
+  messages: z.array(z.string()).default([]),
+  result: z.string().default(''),
 });
 
-// Set up registry
-const registry = new NodeRegistry();
-registry.register(greeter);
+// Define nodes (with automatic state type inference)
+const defineMyNode = defineNodeFor(MyState);
 
-// Mount routes
+const greeter = defineMyNode({
+  key: 'greeter',
+  label: 'Greeter',
+  run: async (state) => ({
+    messages: [...state.messages, 'Hello!'],
+    result: 'Greeting complete.',
+  }),
+});
+
+// Start server — linforgeMiddleware handles everything
 const app = new Koa();
-const router = new Router();
-
-mountRoutes(router, {
-  registry,
-  graphStore: new MemoryGraphStore(),
-  runStore: new MemoryRunStore(),
-  stepPersister: new MemoryStepPersister(),
-  promptStore: new MemoryPromptStore(),
-  compilerFactory: (reg) => new GraphCompiler(reg),
-  runManagerFactory: (compiler) => new RunManager(compiler),
-});
-
-app.use(router.routes());
+app.use(cors());
+app.use(bodyParser());
+app.use(linforgeMiddleware({
+  stateSchema: MyState,
+  nodes: [greeter],
+}));
 app.listen(3001);
 ```
+
+> Need full control? Use `mountRoutes()` directly — see [examples/full-stack/](examples/full-stack/) for the manual assembly approach.
 
 ### 3. Frontend
 
@@ -122,6 +117,9 @@ All peer dependencies are optional — install only what you need.
 | Export                 | Description                                       |
 | ---------------------- | ------------------------------------------------- |
 | `defineNode(options)`  | Create a typed node definition                    |
+| `defineNodeFor(schema)` | Create a typed `defineNode` bound to a StateSchema (auto-infers state types) |
+| `InferState<T>`        | Utility type: extract full state type from a StateSchema |
+| `InferUpdate<T>`       | Utility type: extract partial update type from a StateSchema |
 | `NodeRegistry`         | Register/discover nodes                           |
 | `GraphCompiler`        | Compile graph definitions to LangGraph StateGraph |
 | `RunManager`           | Execute graphs with abort, steps, and callbacks   |
@@ -134,7 +132,8 @@ All peer dependencies are optional — install only what you need.
 
 | Export                      | Description                          |
 | --------------------------- | ------------------------------------ |
-| `mountRoutes(router, opts)` | Mount 15 REST routes on a Koa router |
+| `linforgeMiddleware(opts)`  | One-line Koa middleware — auto-creates Registry, Compiler, RunManager, Stores (recommended) |
+| `mountRoutes(router, opts)` | Mount 16 REST routes on a Koa router (low-level API) |
 
 ### React
 

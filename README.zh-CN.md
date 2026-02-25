@@ -14,7 +14,8 @@
 - **模板系统** — 4 个内置图模板（ReAct、Pipeline、Map-Reduce、Human-in-the-Loop）
 - **Store 接口** — 可插拔的持久化层：`GraphStore`、`RunStore`、`StepPersister`、`PromptStore`
 - **一行集成** — `<LinforgeWorkbench>` 组件将完整工作台嵌入任意 React 应用
-- **Koa 服务端路由** — `mountRoutes()` 挂载 15 条 REST 端点，覆盖图、运行、Prompt、模板管理
+- **Run metadata 透传** — 传入业务上下文（userId、tenantId、source），贯穿运行生命周期，支持按 metadata 过滤
+- **Koa 服务端路由** — `linforgeMiddleware()` 一行接入，或 `mountRoutes()` 完全控制 — 16 条 REST 端点
 
 ## 快速上手
 
@@ -30,49 +31,43 @@ npm install react react-dom @xyflow/react koa @koa/router
 
 ```ts
 import Koa from 'koa';
-import Router from '@koa/router';
-import {
-  NodeRegistry,
-  defineNode,
-  RunManager,
-  GraphCompiler,
-} from 'linforge/core';
-import { mountRoutes } from 'linforge/server';
-import {
-  MemoryGraphStore,
-  MemoryRunStore,
-  MemoryStepPersister,
-  MemoryPromptStore,
-} from 'linforge/testing';
+import cors from '@koa/cors';
+import bodyParser from 'koa-bodyparser';
+import { StateSchema } from '@langchain/langgraph';
+import { z } from 'zod/v4';
+import { defineNodeFor } from 'linforge/core';
+import { linforgeMiddleware } from 'linforge/server';
 
-// 定义节点
-const greeter = defineNode({
-  name: 'greeter',
-  description: 'Says hello',
-  execute: async (state) => ({ ...state, message: 'Hello!' }),
+// 定义 State
+const MyState = new StateSchema({
+  messages: z.array(z.string()).default([]),
+  result: z.string().default(''),
 });
 
-// 注册节点
-const registry = new NodeRegistry();
-registry.register(greeter);
+// 定义节点（自动推导 state 类型）
+const defineMyNode = defineNodeFor(MyState);
 
-// 挂载路由
+const greeter = defineMyNode({
+  key: 'greeter',
+  label: 'Greeter',
+  run: async (state) => ({
+    messages: [...state.messages, 'Hello!'],
+    result: 'Greeting complete.',
+  }),
+});
+
+// 启动服务器 — linforgeMiddleware 自动处理一切
 const app = new Koa();
-const router = new Router();
-
-mountRoutes(router, {
-  registry,
-  graphStore: new MemoryGraphStore(),
-  runStore: new MemoryRunStore(),
-  stepPersister: new MemoryStepPersister(),
-  promptStore: new MemoryPromptStore(),
-  compilerFactory: (reg) => new GraphCompiler(reg),
-  runManagerFactory: (compiler) => new RunManager(compiler),
-});
-
-app.use(router.routes());
+app.use(cors());
+app.use(bodyParser());
+app.use(linforgeMiddleware({
+  stateSchema: MyState,
+  nodes: [greeter],
+}));
 app.listen(3001);
 ```
+
+> 需要完全控制？使用 `mountRoutes()` 手动组装 — 参见 [examples/full-stack/](examples/full-stack/)
 
 ### 3. 前端
 
@@ -136,20 +131,24 @@ Linforge 采用三层架构，兼顾灵活性与可执行性：
 
 | 导出                   | 说明                                  |
 | ---------------------- | ------------------------------------- |
-| `defineNode(options)`  | 创建类型化的节点定义                  |
-| `NodeRegistry`         | 注册和发现节点                        |
-| `GraphCompiler`        | 将图定义编译为 LangGraph StateGraph   |
-| `RunManager`           | 执行图，支持中断、步骤记录和回调      |
-| `createPromptLoader()` | 基于 Store 的 Prompt 加载器（带缓存） |
-| `TemplateRegistry`     | 注册和列举图模板                      |
-| `applyTemplate()`      | 将模板实例化为完整的图定义            |
-| `withStepRecording()`  | 包装节点函数，自动记录执行步骤        |
+| `defineNode(options)`   | 创建类型化的节点定义                                |
+| `defineNodeFor(schema)` | 创建绑定 StateSchema 的 `defineNode`（自动推导 state 类型） |
+| `InferState<T>`         | 工具类型：从 StateSchema 提取完整 state 类型        |
+| `InferUpdate<T>`        | 工具类型：从 StateSchema 提取 partial update 类型   |
+| `NodeRegistry`          | 注册和发现节点                                      |
+| `GraphCompiler`         | 将图定义编译为 LangGraph StateGraph                 |
+| `RunManager`            | 执行图，支持中断、步骤记录和回调                    |
+| `createPromptLoader()`  | 基于 Store 的 Prompt 加载器（带缓存）               |
+| `TemplateRegistry`      | 注册和列举图模板                                    |
+| `applyTemplate()`       | 将模板实例化为完整的图定义                          |
+| `withStepRecording()`   | 包装节点函数，自动记录执行步骤                      |
 
 ### Server
 
-| 导出                        | 说明                           |
-| --------------------------- | ------------------------------ |
-| `mountRoutes(router, opts)` | 在 Koa Router 上挂载 15 条路由 |
+| 导出                         | 说明                                                                  |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `linforgeMiddleware(opts)`   | 一行接入 Koa 中间件 — 自动创建 Registry、Compiler、RunManager、Stores（推荐） |
+| `mountRoutes(router, opts)`  | 在 Koa Router 上挂载 16 条路由（底层 API）                            |
 
 ### React
 
@@ -193,7 +192,7 @@ const stores = createPrismaStores(new PrismaClient());
 
 ## 详细设计文档
 
-完整的架构设计和 API 规范请参考 [agent-studio.md](./agent-studio-zh-CN.md)。
+完整的架构设计和 API 规范请参考 [agent-studio.md](./docs/agent-studio.md)。
 
 ## 许可证
 
