@@ -145,7 +145,7 @@ importers:
         specifier: ^22.0.0
         version: 22.19.11
       linforge:
-        specifier: workspace:*
+        specifier: workspace:>=0.2.0
         version: link:../linforge
       prisma:
         specifier: ^6.0.0
