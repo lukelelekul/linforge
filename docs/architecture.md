@@ -86,7 +86,7 @@ Developers write node logic in code; product managers design graph topology on c
 
 ## Store Interfaces (DAO Layer)
 
-Four database-agnostic interfaces defined in `src/core/types.ts`. Linforge ships in-memory implementations for development; production adapters are provided by the host application or separate adapter packages.
+Four database-agnostic interfaces defined in `packages/linforge/src/core/types.ts`. Linforge ships in-memory implementations for development; production adapters are provided by the host application or separate adapter packages.
 
 ### GraphStore
 

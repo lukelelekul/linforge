@@ -81,7 +81,7 @@ Layer 3 (Auto):   GraphCompiler combines L1 + L2 -> Runnable    [linforge]
 
 ## 核心 Store 接口 (DAO 层)
 
-4 个接口定义在 `src/core/types.ts`，是数据库无关的抽象层。
+4 个接口定义在 `packages/linforge/src/core/types.ts`，是数据库无关的抽象层。
 项目内置 Memory 实现用于开发测试，生产环境由用户或 adapter 包实现。
 
 ### GraphStore — 图定义存储
