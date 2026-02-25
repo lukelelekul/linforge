@@ -1,0 +1,77 @@
+// =============================================================================
+// Linforge Prisma Schema（参考文件）
+//
+// 使用方法：将以下 model 定义复制到你项目的 schema.prisma 中。
+// datasource 和 generator 请根据你的项目自行配置，例如：
+//
+//   datasource db {
+//     provider = "postgresql"
+//     url      = env("DATABASE_URL")
+//   }
+//
+//   generator client {
+//     provider = "prisma-client-js"
+//   }
+//
+// 支持的数据库：PostgreSQL、MySQL、SQLite（Json 字段需要数据库支持）
+// =============================================================================
+
+model LinforgeGraph {
+  id        String   @id
+  slug      String   @unique
+  name      String
+  icon      String?
+  nodes     Json     // GraphNodeDef[]
+  edges     Json     // GraphEdgeDef[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("linforge_graphs")
+}
+
+model LinforgeRun {
+  id         String    @id
+  graphSlug  String
+  status     String    // 'running' | 'completed' | 'failed' | 'cancelled'
+  input      Json?
+  result     Json?
+  metadata   Json?     // userId, tenantId 等业务上下文
+  tokensUsed Int       @default(0)
+  startedAt  DateTime
+  finishedAt DateTime?
+
+  @@index([graphSlug])
+  @@index([startedAt])
+  @@map("linforge_runs")
+}
+
+model LinforgeStep {
+  id          String  @id @default(cuid())
+  agentRunId  String
+  nodeId      String
+  stepNumber  Int
+  input       Json
+  output      Json
+  durationMs  Int
+  tokensUsed  Int
+  toolName    String?
+  stateBefore Json?
+  stateAfter  Json?
+
+  @@index([agentRunId])
+  @@map("linforge_steps")
+}
+
+model LinforgePromptVersion {
+  id          String   @id @default(cuid())
+  nodeId      String
+  version     Int
+  template    String   @db.Text
+  temperature Float
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@unique([nodeId, version])
+  @@index([nodeId])
+  @@map("linforge_prompt_versions")
+}

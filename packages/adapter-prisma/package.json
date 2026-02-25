@@ -46,7 +46,6 @@
     "@prisma/client": "^6.0.0"
   },
   "devDependencies": {
-    "@prisma/client": "^6.0.0",
     "linforge": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.8.3",
