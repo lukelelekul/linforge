@@ -176,7 +176,7 @@ Linforge 采用三层架构，兼顾灵活性与可执行性：
 
 ## 详细设计文档
 
-完整的架构设计和 API 规范请参考 [agent-studio.md](./agent-studio.md)。
+完整的架构设计和 API 规范请参考 [agent-studio.md](./agent-studio-zh-CN.md)。
 
 ## 许可证
 
