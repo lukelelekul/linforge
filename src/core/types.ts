@@ -1,5 +1,25 @@
 import type { BaseMessage } from '@langchain/core/messages';
 import type { Runnable } from '@langchain/core/runnables';
+import type {
+  StateSchema,
+  StateSchemaFields,
+  InferStateSchemaValue,
+  InferStateSchemaUpdate,
+} from '@langchain/langgraph';
+
+// ============================================================
+// StateSchema 工具类型
+// ============================================================
+
+/** 从 StateSchema 实例提取完整 State 类型 */
+export type InferState<T> = T extends StateSchema<infer F extends StateSchemaFields>
+  ? InferStateSchemaValue<F>
+  : never;
+
+/** 从 StateSchema 实例提取 Update 类型（Partial，用于 run 返回值） */
+export type InferUpdate<T> = T extends StateSchema<infer F extends StateSchemaFields>
+  ? InferStateSchemaUpdate<F>
+  : never;
 
 // ============================================================
 // Node definitions (created by developers via defineNode)

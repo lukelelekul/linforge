@@ -6,6 +6,11 @@
 //   3. Wire up Memory Stores (swap with DB adapters in production)
 //   4. Seed an initial graph definition
 //   5. Start a Koa server with mountRoutes() — one call exposes all APIs
+//
+// 类型安全写法提示：
+//   可使用 defineNodeFor(schema) 获得自动 state 类型推导，无需手动标注 `state: any`。
+//   示例参见 ../quick-start/server.ts
+//   本文件保留 defineNode + any 写法以聚焦展示手动组装流程。
 
 import Koa from 'koa';
 import cors from '@koa/cors';

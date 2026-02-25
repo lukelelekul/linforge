@@ -8,7 +8,7 @@ import cors from '@koa/cors';
 import bodyParser from 'koa-bodyparser';
 import { StateSchema } from '@langchain/langgraph';
 import { z } from 'zod/v4';
-import { defineNode } from 'linforge/core';
+import { defineNodeFor } from 'linforge/core';
 import { linforgeMiddleware } from 'linforge/server';
 
 // 1. 定义 State（不需要手动添加 agentRunId，middleware 自动注入）
@@ -17,11 +17,13 @@ const MyState = new StateSchema({
   result: z.string().default(''),
 });
 
-// 2. 定义 Nodes
-const greeter = defineNode({
+// 2. 定义 Nodes — 使用 defineNodeFor 自动推导 state 类型
+const defineMyNode = defineNodeFor(MyState);
+
+const greeter = defineMyNode({
   key: 'greeter',
   label: 'Greeter',
-  run: async (state: any) => ({
+  run: async (state) => ({           // ← state 自动推导，无需手动标注
     messages: [...state.messages, '[greeter] Hello!'],
     result: 'Greeting complete.',
   }),

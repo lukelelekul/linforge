@@ -1,4 +1,5 @@
-import type { DefineNodeOptions, NodeDefinition } from './types';
+import type { StateSchema } from '@langchain/langgraph';
+import type { DefineNodeOptions, InferState, NodeDefinition } from './types';
 
 /**
  * Create a node definition.
@@ -25,4 +26,23 @@ export function defineNode<S = any>(
   };
 
   return Object.freeze(node);
+}
+
+/**
+ * 工厂函数：从 StateSchema 自动绑定泛型，返回已绑定类型的 defineNode。
+ * schema 参数仅用于类型推导，运行时不使用其值。
+ *
+ * @example
+ * ```ts
+ * const defineMyNode = defineNodeFor(MyState);
+ * const greeter = defineMyNode({
+ *   key: 'greeter',
+ *   run: async (state) => ({ result: 'done' }), // ← state 自动推导
+ * });
+ * ```
+ */
+export function defineNodeFor<T extends StateSchema<any>>(
+  _schema: T,
+): (options: DefineNodeOptions<InferState<T>>) => NodeDefinition<InferState<T>> {
+  return (options) => defineNode<InferState<T>>(options);
 }

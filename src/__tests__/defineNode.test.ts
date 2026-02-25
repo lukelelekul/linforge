@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { defineNode } from '../core/defineNode';
+import { defineNode, defineNodeFor } from '../core/defineNode';
+import { StateSchema } from '@langchain/langgraph';
+import { z } from 'zod/v4';
 
 describe('defineNode', () => {
   it('创建包含 key 和 run 的节点定义', () => {
@@ -81,5 +83,61 @@ describe('defineNode', () => {
     });
 
     expect('routes' in node).toBe(false);
+  });
+});
+
+describe('defineNodeFor', () => {
+  const TestState = new StateSchema({
+    count: z.number().default(0),
+    label: z.string().default(''),
+  });
+
+  it('返回的函数能正常创建 node', () => {
+    const defineMyNode = defineNodeFor(TestState);
+    const node = defineMyNode({
+      key: 'counter',
+      run: async (state) => ({ count: state.count + 1 }),
+    });
+
+    expect(node.key).toBe('counter');
+    expect(typeof node.run).toBe('function');
+    expect(Object.isFrozen(node)).toBe(true);
+  });
+
+  it('创建的 node 与直接 defineNode 行为一致', async () => {
+    const defineMyNode = defineNodeFor(TestState);
+    const nodeA = defineMyNode({
+      key: 'adder',
+      run: async (state) => ({ count: state.count + 10 }),
+    });
+
+    const nodeB = defineNode<typeof TestState.State>({
+      key: 'adder',
+      run: async (state) => ({ count: state.count + 10 }),
+    });
+
+    const input = { count: 5, label: 'test' };
+    const resultA = await nodeA.run(input);
+    const resultB = await nodeB.run(input);
+
+    expect(resultA).toEqual(resultB);
+    expect(resultA).toEqual({ count: 15 });
+  });
+
+  it('支持 routes 和 summarizeOutput', () => {
+    const defineMyNode = defineNodeFor(TestState);
+    const node = defineMyNode({
+      key: 'router',
+      routes: {
+        positive: (s) => s.count > 0,
+      },
+      run: async (state) => ({ count: state.count }),
+      summarizeOutput: (_input, output) => ({ summary: output }),
+    });
+
+    expect(node.routes).toBeDefined();
+    expect(node.routes!.positive({ count: 1, label: '' })).toBe(true);
+    expect(node.routes!.positive({ count: -1, label: '' })).toBe(false);
+    expect(node.summarizeOutput).toBeDefined();
   });
 });

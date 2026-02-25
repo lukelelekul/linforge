@@ -2,6 +2,8 @@
 
 // 类型
 export type {
+  InferState,
+  InferUpdate,
   NodeDefinition,
   DefineNodeOptions,
   OutputSummarizer,
@@ -26,8 +28,8 @@ export type {
   GraphStore,
 } from './types';
 
-// defineNode
-export { defineNode } from './defineNode';
+// defineNode / defineNodeFor
+export { defineNode, defineNodeFor } from './defineNode';
 
 // NodeRegistry
 export { NodeRegistry } from './NodeRegistry';
