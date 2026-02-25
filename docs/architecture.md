@@ -24,7 +24,7 @@ The core idea: **design topology on canvas, implement logic in code** — the co
 ```
 linforge          Root entry — re-exports all submodules
 linforge/core     Core logic: defineNode, Registry, Compiler, RunManager, types
-linforge/server   Koa HTTP router (mountRoutes)
+linforge/server   Koa HTTP API (linforgeMiddleware + mountRoutes)
 linforge/react    React hooks and UI components
 linforge/testing  In-memory Store implementations (dev / test)
 ```
@@ -48,7 +48,8 @@ src/
 │   ├── stateSanitizer.ts         State sanitization utilities
 │   └── index.ts                  Core module exports
 ├── server/
-│   ├── router.ts                 mountRoutes() — 16 REST endpoints
+│   ├── middleware.ts             linforgeMiddleware() — one-line server setup
+│   ├── router.ts                 createLinforgeRouter() + mountRoutes() — 16 REST endpoints
 │   └── index.ts                  Server module exports
 ├── react/
 │   ├── useLinforgeGraph.ts       Graph editing hook
@@ -69,7 +70,8 @@ src/
 │   └── index.ts                  Testing module exports
 ├── __tests__/                    Test files
 examples/
-├── server.ts                     Full backend example
+├── quick-start/                  Minimal full-stack example (~30-line server)
+├── full-stack/                   Complete manual-assembly example (~240-line server)
 ```
 
 ## Three-Layer Architecture
@@ -106,7 +108,7 @@ Manages run records across their lifecycle.
 interface RunStore {
   createRun(run: Omit<RunRecord, 'finishedAt'>): Promise<void>;
   getRun(runId: string): Promise<RunRecord | null>;
-  listRuns(graphSlug: string, opts?: { limit?: number; offset?: number }): Promise<RunRecord[]>;
+  listRuns(graphSlug: string, opts?: { limit?: number; offset?: number; metadata?: Record<string, unknown> }): Promise<RunRecord[]>;
   updateRunStatus(runId: string, status: RunRecord['status'], data?: Record<string, unknown>): Promise<void>;
 }
 ```
@@ -146,8 +148,10 @@ interface PromptStore {
 ### RunRecord
 
 ```typescript
-{ id, graphSlug, status, input?, result?, tokensUsed, startedAt, finishedAt? }
+{ id, graphSlug, status, input?, result?, metadata?, tokensUsed, startedAt, finishedAt? }
 ```
+
+`metadata` is an optional `Record<string, unknown>` for passing business context (userId, tenantId, source, etc.).
 
 ### StepData
 
@@ -161,7 +165,44 @@ interface PromptStore {
 { id, template, temperature, nodeId, version, isActive, createdAt }
 ```
 
-## REST API (mountRoutes)
+## Server Integration
+
+### linforgeMiddleware (recommended)
+
+One-line server setup. Automatically creates Registry, Compiler, RunManager, TemplateRegistry, and Memory Stores. Also auto-injects `agentRunId` into StateSchema if missing.
+
+```typescript
+import Koa from 'koa';
+import cors from '@koa/cors';
+import bodyParser from 'koa-bodyparser';
+import { linforgeMiddleware } from 'linforge/server';
+
+const app = new Koa();
+app.use(cors());
+app.use(bodyParser());
+app.use(linforgeMiddleware({
+  stateSchema: MyState,
+  nodes: [planner, tools, summarizer],
+}));
+app.listen(3001);
+```
+
+Options:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `stateSchema` | StateSchema | **required** | LangGraph StateSchema instance |
+| `nodes` | NodeDefinition[] | **required** | Node definitions created via defineNode() |
+| `prefix` | string | `"/linforge"` | Route prefix |
+| `stores` | object | Memory* defaults | Custom Store implementations (graphStore, runStore, stepPersister, promptStore) |
+| `buildInput` | function | `(i) => ({ instruction: i })` | Transform instruction into graph input |
+| `stepRecordingDebug` | boolean | `false` | Record full state snapshots |
+| `templates` | GraphTemplate[] | `[]` | Additional templates appended to built-ins |
+| `disableBuiltinTemplates` | boolean | `false` | Disable built-in templates |
+
+### mountRoutes (low-level)
+
+For users who need full control over component creation. `linforgeMiddleware` uses this internally.
 
 `mountRoutes(app, options)` registers the following endpoints on a Koa application. Default prefix: `/linforge`.
 

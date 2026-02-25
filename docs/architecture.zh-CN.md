@@ -21,7 +21,7 @@ Linforge 是一个可嵌入的 LangGraph Agent 应用开发工作台。
 ```
 linforge          — 总入口 (re-export 全部子模块)
 linforge/core     — 核心逻辑 (defineNode, Registry, Compiler, RunManager...)
-linforge/server   — Koa HTTP 路由 (mountRoutes)
+linforge/server   — Koa HTTP API (linforgeMiddleware + mountRoutes)
 linforge/react    — React hooks + UI 工具
 linforge/testing  — 内存 Store 实现 (开发/测试用)
 ```
@@ -45,7 +45,8 @@ src/
 │   ├── stateSanitizer.ts     — 状态清理工具
 │   └── index.ts              — core 模块导出
 ├── server/
-│   ├── router.ts             — mountRoutes() — 15 个 REST 端点
+│   ├── middleware.ts         — linforgeMiddleware() — 一行接入后端
+│   ├── router.ts             — createLinforgeRouter() + mountRoutes() — 16 个 REST 端点
 │   └── index.ts              — server 模块导出
 ├── react/
 │   ├── useLinforgeGraph.ts       — 图编辑 hook
@@ -66,7 +67,8 @@ src/
 │   └── index.ts                  — testing 模块导出
 ├── __tests__/                    — 测试文件
 examples/
-├── server.ts                     — 完整后端示例
+├── quick-start/                  — 最小全栈示例 (~30 行后端)
+├── full-stack/                   — 完整手动组装示例 (~240 行后端)
 ```
 
 ## 三层架构
@@ -98,7 +100,7 @@ interface GraphStore {
 interface RunStore {
   createRun(run: Omit<RunRecord, 'finishedAt'>): Promise<void>;
   getRun(runId: string): Promise<RunRecord | null>;
-  listRuns(graphSlug: string, opts?: { limit?: number; offset?: number }): Promise<RunRecord[]>;
+  listRuns(graphSlug: string, opts?: { limit?: number; offset?: number; metadata?: Record<string, unknown> }): Promise<RunRecord[]>;
   updateRunStatus(runId: string, status: RunRecord['status'], data?: Record<string, unknown>): Promise<void>;
 }
 ```
@@ -134,8 +136,10 @@ interface PromptStore {
 ### RunRecord
 
 ```typescript
-{ id, graphSlug, status, input?, result?, tokensUsed, startedAt, finishedAt? }
+{ id, graphSlug, status, input?, result?, metadata?, tokensUsed, startedAt, finishedAt? }
 ```
+
+`metadata` 是可选的 `Record<string, unknown>`，用于透传业务上下文（userId、tenantId、source 等）。
 
 ### StepData
 
@@ -149,7 +153,44 @@ interface PromptStore {
 { id, template, temperature, nodeId, version, isActive, createdAt }
 ```
 
-## Server 路由 (mountRoutes)
+## Server 接入
+
+### linforgeMiddleware（推荐）
+
+一行接入后端。自动创建 Registry、Compiler、RunManager、TemplateRegistry 和 Memory Stores。同时自动检测并注入 `agentRunId` 到 StateSchema。
+
+```typescript
+import Koa from 'koa';
+import cors from '@koa/cors';
+import bodyParser from 'koa-bodyparser';
+import { linforgeMiddleware } from 'linforge/server';
+
+const app = new Koa();
+app.use(cors());
+app.use(bodyParser());
+app.use(linforgeMiddleware({
+  stateSchema: MyState,
+  nodes: [planner, tools, summarizer],
+}));
+app.listen(3001);
+```
+
+配置项：
+
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `stateSchema` | StateSchema | **必填** | LangGraph StateSchema 实例 |
+| `nodes` | NodeDefinition[] | **必填** | defineNode() 创建的节点数组 |
+| `prefix` | string | `"/linforge"` | 路由前缀 |
+| `stores` | object | Memory* 默认值 | 自定义 Store 实现 (graphStore, runStore, stepPersister, promptStore) |
+| `buildInput` | function | `(i) => ({ instruction: i })` | 将 instruction 转换为图输入 |
+| `stepRecordingDebug` | boolean | `false` | 记录完整 state 快照 |
+| `templates` | GraphTemplate[] | `[]` | 追加到内置模板的自定义模板 |
+| `disableBuiltinTemplates` | boolean | `false` | 禁用内置模板 |
+
+### mountRoutes（底层 API）
+
+供需要完全控制组件创建的用户使用。`linforgeMiddleware` 内部调用此函数。
 
 `mountRoutes(app, options)` 在 Koa 应用上注册以下端点 (默认前缀 `/linforge`):
 
