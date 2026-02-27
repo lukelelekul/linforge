@@ -1,6 +1,6 @@
 {
   "name": "linforge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": false,
   "type": "module",
   "description": "Embeddable workbench for LangGraph Agent apps — edit, run, debug, and monitor in one place",
@@ -60,7 +60,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "pnpm run build && pnpm run test"
+    "prepublishOnly": "cp ../../LICENSE ../../CHANGELOG.md . && pnpm run build && pnpm run test"
   },
   "dependencies": {
     "@langchain/core": "^1.1.27",
