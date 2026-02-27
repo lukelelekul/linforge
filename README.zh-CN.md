@@ -155,7 +155,8 @@ Linforge 采用三层架构，兼顾灵活性与可执行性：
 | `NodeRegistry`          | 注册和发现节点                                      |
 | `GraphCompiler`         | 将图定义编译为 LangGraph StateGraph                 |
 | `RunManager`            | 执行图，支持中断、步骤记录和回调                    |
-| `createPromptLoader()`  | 基于 Store 的 Prompt 加载器（带缓存）               |
+| `createPromptLoader()`  | 基于 Store 的 Prompt 加载器（带缓存和 Mustache 渲染）|
+| `renderPrompt()`        | 纯函数：Mustache 模板渲染（禁用 HTML 转义）         |
 | `TemplateRegistry`      | 注册和列举图模板                                    |
 | `applyTemplate()`       | 将模板实例化为完整的图定义                          |
 | `withStepRecording()`   | 包装节点函数，自动记录执行步骤                      |

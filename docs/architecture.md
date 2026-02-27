@@ -41,7 +41,7 @@ src/
 │   ├── GraphCompiler.ts          Graph compiler (GraphDef + Registry → Runnable)
 │   ├── RunManager.ts             Run lifecycle (start / timeout / cancel)
 │   ├── StepRecorder.ts           Automatic step recording wrapper
-│   ├── PromptLoader.ts           Prompt loader with in-memory cache
+│   ├── PromptLoader.ts           Prompt loader with cache and Mustache rendering
 │   ├── TemplateRegistry.ts       Graph template registry
 │   ├── applyTemplate.ts          Merge a template into an existing graph
 │   ├── builtinTemplates.ts       Built-in templates (ReAct, Pipeline, MapReduce, HITL)
@@ -136,6 +136,36 @@ interface PromptStore {
   activateVersion(nodeId: string, versionId: string): Promise<void>;
 }
 ```
+
+### PromptLoader
+
+Prompt loading with in-memory cache and Mustache template rendering.
+
+```typescript
+interface PromptLoader {
+  getActivePrompt(nodeId: string): Promise<PromptVersion | null>;
+  invalidateCache(nodeId?: string): void;
+  render(nodeId: string, vars: Record<string, unknown>, fallback?: PromptFallback): Promise<RenderResult>;
+}
+
+interface RenderResult {
+  text: string;           // rendered template
+  temperature: number;    // LLM temperature param
+  source: 'store' | 'fallback';
+}
+
+interface PromptFallback {
+  template: string;
+  temperature?: number;   // defaults to 0.7
+}
+
+// Pure function — standalone Mustache rendering (HTML escaping disabled)
+function renderPrompt(template: string, vars: Record<string, unknown>): string;
+```
+
+- `createPromptLoader(store)` creates a cached loader instance
+- `render()` loads the active prompt via `getActivePrompt()`, renders variables with Mustache, falls back to `fallback.template` if no active version exists
+- `renderPrompt()` is a pure function for use without a PromptStore
 
 ## Data Entities
 

@@ -209,7 +209,7 @@ linforge-adapter-prisma  # Production-ready Prisma Store implementations
 | State schema (Zod)                                | Graph Compiler — DB definition → LangGraph StateGraph                                                  |
 | Conditional route functions                       | StepRecorder — auto-injection via compile options                                                      |
 | Prompt seed data                                  | RunManager — trigger / cancel / abort                                                                  |
-| **Store adapters** (implement toolkit interfaces) | PromptLoader — cache + fallback                                                                        |
+| **Store adapters** (implement toolkit interfaces) | PromptLoader — cache + Mustache rendering + fallback                                                   |
 | Custom templates (optional)                       | Template Registry — built-in + custom registration + append-merge                                      |
 |                                                   | `mountRoutes(app)` — one-line API setup                                                                |
 |                                                   | **Store interfaces** (GraphStore / StepPersister / PromptStore / RunStore)                             |

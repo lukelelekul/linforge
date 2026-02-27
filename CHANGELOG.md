@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1 (2026-02-27)
+
+### Core (`linforge/core`)
+
+- **Prompt rendering** — `PromptLoader.render()` method: load active prompt template, render Mustache variables, with fallback support
+- **`renderPrompt()` pure function** — standalone Mustache rendering utility (HTML escaping disabled for Prompt context)
+- **New types** — `RenderResult` (rendered text + temperature + source tracking), `PromptFallback` (fallback config)
+- **New dependency** — `mustache` (~3KB, zero sub-dependencies)
+
 ## 0.3.0 (2026-02-27)
 
 ### Server (`linforge/server`)

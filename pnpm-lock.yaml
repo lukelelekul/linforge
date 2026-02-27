@@ -171,6 +171,9 @@ importers:
       koa:
         specifier: ^3.0.0
         version: 3.1.1
+      mustache:
+        specifier: ^4.2.0
+        version: 4.2.0
       react:
         specifier: ^18.0.0 || ^19.0.0
         version: 19.2.4
@@ -190,6 +193,9 @@ importers:
       '@types/koa__router':
         specifier: ^12.0.0
         version: 12.0.5
+      '@types/mustache':
+        specifier: ^4.2.6
+        version: 4.2.6
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.14
@@ -762,6 +768,9 @@ packages:
 
   '@types/koa__router@12.0.5':
     resolution: {integrity: sha512-1HeLxuDn4n5it1yZYCSyOYXo++73zT0ffoviXnPxbwbxLbvDFEvWD9ZzpRiIpK4oKR0pi+K+Mk/ZjyROjW3HSw==}
+
+  '@types/mustache@4.2.6':
+    resolution: {integrity: sha512-t+8/QWTAhOFlrF1IVZqKnMRJi84EgkIK5Kh0p2JV4OLywUvCwJPFxbJAl7XAow7DVIHsF+xW9f1MVzg0L6Szjw==}
 
   '@types/node@22.19.11':
     resolution: {integrity: sha512-BH7YwL6rA93ReqeQS1c4bsPpcfOmJasG+Fkr6Y59q83f9M1WcBRHR2vM+P9eOisYRcN3ujQoiZY8uk5W+1WL8w==}
@@ -2360,6 +2369,8 @@ snapshots:
   '@types/koa__router@12.0.5':
     dependencies:
       '@types/koa': 3.0.1
+
+  '@types/mustache@4.2.6': {}
 
   '@types/node@22.19.11':
     dependencies:

@@ -38,7 +38,7 @@ src/
 │   ├── GraphCompiler.ts      — 图编译器 (GraphDef + Registry -> Runnable)
 │   ├── RunManager.ts         — 运行生命周期管理 (启动/超时/取消)
 │   ├── StepRecorder.ts       — 步骤自动记录包装器
-│   ├── PromptLoader.ts       — Prompt 加载 + 内存缓存
+│   ├── PromptLoader.ts       — Prompt 加载 + Mustache 渲染 + 内存缓存
 │   ├── TemplateRegistry.ts   — 图模板注册表
 │   ├── applyTemplate.ts      — 模板应用到图 (追加合并)
 │   ├── builtinTemplates.ts   — 内置模板 (ReAct, Pipeline, MapReduce, HITL)
@@ -124,6 +124,36 @@ interface PromptStore {
   activateVersion(nodeId: string, versionId: string): Promise<void>;
 }
 ```
+
+### PromptLoader — Prompt 加载与渲染
+
+基于内存缓存的 Prompt 加载器，支持 Mustache 模板渲染。
+
+```typescript
+interface PromptLoader {
+  getActivePrompt(nodeId: string): Promise<PromptVersion | null>;
+  invalidateCache(nodeId?: string): void;
+  render(nodeId: string, vars: Record<string, unknown>, fallback?: PromptFallback): Promise<RenderResult>;
+}
+
+interface RenderResult {
+  text: string;           // 渲染后的模板文本
+  temperature: number;    // LLM 温度参数
+  source: 'store' | 'fallback';
+}
+
+interface PromptFallback {
+  template: string;
+  temperature?: number;   // 默认 0.7
+}
+
+// 纯函数 — 独立的 Mustache 渲染（禁用 HTML 转义）
+function renderPrompt(template: string, vars: Record<string, unknown>): string;
+```
+
+- `createPromptLoader(store)` 创建带缓存的加载器实例
+- `render()` 通过 `getActivePrompt()` 加载激活版本，用 Mustache 渲染变量；无激活版本时使用 `fallback.template`
+- `renderPrompt()` 是纯函数，可脱离 PromptStore 独立使用
 
 ## 核心数据实体
 

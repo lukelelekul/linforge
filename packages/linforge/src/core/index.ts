@@ -45,8 +45,8 @@ export type { StepRecordingOptions } from './StepRecorder';
 export { sanitizeState } from './stateSanitizer';
 
 // PromptLoader
-export { createPromptLoader } from './PromptLoader';
-export type { PromptLoader } from './PromptLoader';
+export { createPromptLoader, renderPrompt } from './PromptLoader';
+export type { PromptLoader, RenderResult, PromptFallback } from './PromptLoader';
 
 // RunManager
 export { RunManager } from './RunManager';

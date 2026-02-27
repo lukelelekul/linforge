@@ -207,7 +207,7 @@ mountRoutes(app, { ..., templateRegistry });
 | State schema (Zod)               | Graph Compiler — DB def → LangGraph                                                                                           |
 | 条件路由函数                     | StepRecorder — 自动注入                                                                                                       |
 | Prompt 种子数据                  | RunManager — 触发/取消/abort                                                                                                  |
-| **Store 适配器**（实现套件接口） | PromptLoader — cache + fallback                                                                                               |
+| **Store 适配器**（实现套件接口） | PromptLoader — cache + Mustache rendering + fallback                                                                          |
 | 自定义模板（可选）               | Template Registry — 内置模板 + 自定义注册 + applyTemplate 追加合并                                                            |
 |                                  | mountRoutes(app) — 一行挂载 API                                                                                               |
 |                                  | **Store 接口定义**（GraphStore/StepPersister/PromptStore/RunStore）                                                           |

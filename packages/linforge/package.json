@@ -1,6 +1,6 @@
 {
   "name": "linforge",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": false,
   "type": "module",
   "description": "Embeddable workbench for LangGraph Agent apps — edit, run, debug, and monitor in one place",
@@ -65,6 +65,7 @@
   "dependencies": {
     "@langchain/core": "^1.1.27",
     "@langchain/langgraph": "^1.1.5",
+    "mustache": "^4.2.0",
     "zod": "^4.3.6"
   },
   "peerDependencies": {
@@ -95,6 +96,7 @@
     "@koa/router": "^15.3.0",
     "@types/koa": "^3.0.1",
     "@types/koa__router": "^12.0.0",
+    "@types/mustache": "^4.2.6",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@xyflow/react": "^12.10.1",

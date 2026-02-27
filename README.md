@@ -140,7 +140,8 @@ All peer dependencies are optional — install only what you need.
 | `NodeRegistry`         | Register/discover nodes                           |
 | `GraphCompiler`        | Compile graph definitions to LangGraph StateGraph |
 | `RunManager`           | Execute graphs with abort, steps, and callbacks   |
-| `createPromptLoader()` | Store-backed prompt loading with cache            |
+| `createPromptLoader()` | Store-backed prompt loading with cache and Mustache rendering |
+| `renderPrompt()`       | Pure Mustache template rendering (no HTML escaping) |
 | `TemplateRegistry`     | Register and list graph templates                 |
 | `applyTemplate()`      | Instantiate a template into a graph definition    |
 | `withStepRecording()`  | Wrap node functions for automatic step recording  |

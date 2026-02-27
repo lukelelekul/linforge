@@ -78,7 +78,7 @@ This gives you a full REST API at `http://localhost:3001/linforge` — graph CRU
 
 ```
 linforge          Re-exports all submodules
-linforge/core     defineNode, Registry, Compiler, RunManager, Store interfaces
+linforge/core     defineNode, Registry, Compiler, RunManager, PromptLoader, Store interfaces
 linforge/server   Koa HTTP API (linforgeMiddleware + mountRoutes)
 linforge/react    React hooks for graph editing, runs, and prompts
 linforge/testing  In-memory Store implementations (dev/test)
@@ -125,6 +125,27 @@ Four database-agnostic interfaces — implement them to plug in any database:
 | `RunStore` | Run record lifecycle |
 | `StepPersister` | Step data write/query |
 | `PromptStore` | Prompt version management |
+
+### PromptLoader
+
+`createPromptLoader(store)` creates a cached prompt loader with Mustache template rendering:
+
+```typescript
+import { createPromptLoader, renderPrompt } from 'linforge/core';
+
+const loader = createPromptLoader(promptStore);
+
+// Load active prompt, render variables, with fallback
+const result = await loader.render('node-id', { name: 'World' }, {
+  template: 'Hello {{name}}!',
+  temperature: 0.7,
+});
+// result.text → "Hello World!"
+// result.source → 'store' | 'fallback'
+
+// Pure function (no store needed)
+const text = renderPrompt('Hello {{name}}!', { name: 'World' });
+```
 
 Linforge ships in-memory implementations (`linforge/testing`) for development. For production, use an adapter package (e.g., `linforge-adapter-prisma`) or implement the interfaces yourself.
 
