@@ -21,7 +21,7 @@ export function GraphListView({
   header,
   onSelectGraph,
 }: GraphListViewProps) {
-  const { graphs, loading, error, createGraph, updateGraph } =
+  const { graphs, loading, error, codeFirst, createGraph, updateGraph } =
     useLinforgeGraphList(apiBase);
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -94,28 +94,31 @@ export function GraphListView({
             'Agent 工作台',
           ),
         ),
-      React.createElement(
-        'button',
-        {
-          onClick: () => setCreateOpen(true),
-          style: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 16px',
-            borderRadius: 10,
-            border: 'none',
-            background: 'linear-gradient(135deg, #14b8a6, #0d9488)',
-            color: '#fff',
-            fontSize: 13,
-            fontWeight: 500,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(13,148,136,0.25)',
-          },
-        },
-        IconPlus({ size: 14 }),
-        '新建 Agent',
-      ),
+      // code-first 模式下隐藏"新建 Agent"按钮
+      !codeFirst
+        ? React.createElement(
+            'button',
+            {
+              onClick: () => setCreateOpen(true),
+              style: {
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                borderRadius: 10,
+                border: 'none',
+                background: 'linear-gradient(135deg, #14b8a6, #0d9488)',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(13,148,136,0.25)',
+              },
+            },
+            IconPlus({ size: 14 }),
+            '新建 Agent',
+          )
+        : null,
     ),
     // 内容区
     React.createElement(

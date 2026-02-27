@@ -27,6 +27,8 @@ export interface UseLinforgeGraphListReturn {
   graphs: GraphListItem[];
   loading: boolean;
   error: string | null;
+  /** 是否为 code-first 模式（agents 模式下为 true，不允许通过 UI 创建/删除） */
+  codeFirst: boolean;
   createGraph: (input: CreateGraphInput) => Promise<GraphListItem>;
   updateGraph: (slug: string, input: UpdateGraphInput) => Promise<void>;
   reload: () => void;
@@ -43,6 +45,7 @@ export function useLinforgeGraphList(
   const [graphs, setGraphs] = useState<GraphListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [codeFirst, setCodeFirst] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchGraphs = useCallback(async () => {
@@ -61,6 +64,7 @@ export function useLinforgeGraphList(
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setGraphs(data.graphs || []);
+      setCodeFirst(!!data.codeFirst);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       setError(err.message || '加载失败');
@@ -134,6 +138,7 @@ export function useLinforgeGraphList(
     graphs,
     loading,
     error,
+    codeFirst,
     createGraph,
     updateGraph,
     reload: fetchGraphs,

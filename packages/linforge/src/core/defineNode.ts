@@ -19,6 +19,7 @@ export function defineNode<S = any>(
   const node: NodeDefinition<S> = {
     key: options.key,
     run: options.run,
+    ...(options.label && { label: options.label }),
     ...(options.routes && { routes: options.routes }),
     ...(options.summarizeOutput && {
       summarizeOutput: options.summarizeOutput,

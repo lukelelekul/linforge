@@ -10,7 +10,8 @@ import { MemoryGraphStore } from '../testing/MemoryGraphStore';
 import { MemoryRunStore } from '../testing/MemoryRunStore';
 import { MemoryStepPersister } from '../testing/MemoryStepPersister';
 import { MemoryPromptStore } from '../testing/MemoryPromptStore';
-import { mountRoutes } from '../server/router';
+import { mountRoutes, createLinforgeRouter } from '../server/router';
+import type { AgentContext } from '../server/middleware';
 import type { GraphDefinition } from '../core/types';
 
 // 测试用图定义
@@ -1614,5 +1615,207 @@ describe('mountRoutes', () => {
       expect(data.name).toBe('只改名');
       expect(data.slug).toBe('test-agent');
     });
+  });
+});
+
+// ============================================================
+// agentContextMap 路由测试
+// ============================================================
+
+describe('createLinforgeRouter — agentContextMap', () => {
+  let baseURL: string;
+  let cleanup: () => Promise<void>;
+
+  afterEach(async () => {
+    if (cleanup) await cleanup();
+  });
+
+  /** 创建带 agentContextMap 的测试服务器 */
+  async function createAgentMapTestServer(opts: {
+    agentContextMap: Map<string, AgentContext>;
+    graphStore?: MemoryGraphStore;
+    codeFirst?: boolean;
+  }): Promise<{ baseURL: string; cleanup: () => Promise<void>; graphStore: MemoryGraphStore }> {
+    const graphStore = opts.graphStore ?? new MemoryGraphStore();
+    const runManager = new RunManager();
+
+    const app = new Koa();
+
+    // 简单 body parser
+    app.use(async (ctx, next) => {
+      if (ctx.method === 'POST' || ctx.method === 'PUT' || ctx.method === 'PATCH') {
+        const body = await new Promise<string>((resolve) => {
+          let data = '';
+          ctx.req.on('data', (chunk: Buffer) => (data += chunk.toString()));
+          ctx.req.on('end', () => resolve(data));
+        });
+        try {
+          (ctx.request as any).body = JSON.parse(body);
+        } catch {
+          (ctx.request as any).body = {};
+        }
+      }
+      await next();
+    });
+
+    const router = createLinforgeRouter({
+      agentContextMap: opts.agentContextMap,
+      graphStore,
+      runManager,
+      codeFirst: opts.codeFirst ?? false,
+    });
+
+    app.use(router.routes());
+    app.use(router.allowedMethods());
+
+    const server = createServer(app.callback());
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    const addr = server.address() as { port: number };
+    const baseURL = `http://127.0.0.1:${addr.port}`;
+    const cleanup = () => new Promise<void>((r) => server.close(() => r()));
+
+    return { baseURL, cleanup, graphStore };
+  }
+
+  function makeAgentContext(nodeKey: string, nodeLabel?: string): AgentContext {
+    const registry = new NodeRegistry();
+    registry.register({
+      key: nodeKey,
+      label: nodeLabel,
+      run: async (s: any) => s,
+    });
+    const compiler = new GraphCompiler(registry);
+    return {
+      registry,
+      compiler,
+      stateSchema: {},
+      buildInput: (instruction: string) => ({ instruction }),
+    };
+  }
+
+  it('按 slug 精确匹配返回对应 registry 节点', async () => {
+    const map = new Map<string, AgentContext>();
+    map.set('agent-a', makeAgentContext('nodeA', 'Node A'));
+    map.set('agent-b', makeAgentContext('nodeB', 'Node B'));
+
+    const graphStore = new MemoryGraphStore();
+    // 需要为每个 agent 在 graphStore 中创建对应的图
+    graphStore.setGraph('agent-a', {
+      id: 'agent-a',
+      slug: 'agent-a',
+      name: 'Agent A',
+      nodes: [
+        { key: '__start__', label: '开始' },
+        { key: 'nodeA', label: 'Node A' },
+        { key: '__end__', label: '结束' },
+      ],
+      edges: [],
+    });
+    graphStore.setGraph('agent-b', {
+      id: 'agent-b',
+      slug: 'agent-b',
+      name: 'Agent B',
+      nodes: [
+        { key: '__start__', label: '开始' },
+        { key: 'nodeB', label: 'Node B' },
+        { key: '__end__', label: '结束' },
+      ],
+      edges: [],
+    });
+
+    ({ baseURL, cleanup } = await createAgentMapTestServer({ agentContextMap: map, graphStore }));
+
+    const res1 = await fetch(`${baseURL}/linforge/registry/nodes?graphSlug=agent-a`);
+    const data1 = await res1.json();
+    expect(data1.nodes.map((n: any) => n.key)).toContain('nodeA');
+    expect(data1.nodes.map((n: any) => n.key)).not.toContain('nodeB');
+
+    const res2 = await fetch(`${baseURL}/linforge/registry/nodes?graphSlug=agent-b`);
+    const data2 = await res2.json();
+    expect(data2.nodes.map((n: any) => n.key)).toContain('nodeB');
+    expect(data2.nodes.map((n: any) => n.key)).not.toContain('nodeA');
+  });
+
+  it('通配符 * 降级', async () => {
+    const map = new Map<string, AgentContext>();
+    map.set('*', makeAgentContext('fallback'));
+
+    const graphStore = new MemoryGraphStore();
+    graphStore.setGraph('any-slug', {
+      id: 'any-slug',
+      slug: 'any-slug',
+      name: 'Any',
+      nodes: [
+        { key: '__start__', label: '开始' },
+        { key: 'fallback', label: 'Fallback' },
+        { key: '__end__', label: '结束' },
+      ],
+      edges: [],
+    });
+
+    ({ baseURL, cleanup } = await createAgentMapTestServer({
+      agentContextMap: map,
+      graphStore,
+    }));
+
+    // 用通配符模式时，任意 slug 都能匹配
+    const res = await fetch(`${baseURL}/linforge/registry/nodes?graphSlug=any-slug`);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.nodes.map((n: any) => n.key)).toContain('fallback');
+  });
+
+  it('codeFirst 模式下 POST /graphs 返回 403', async () => {
+    const map = new Map<string, AgentContext>();
+    map.set('my-agent', makeAgentContext('worker'));
+
+    ({ baseURL, cleanup } = await createAgentMapTestServer({
+      agentContextMap: map,
+      codeFirst: true,
+    }));
+
+    const res = await fetch(`${baseURL}/linforge/graphs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'New', slug: 'new-agent' }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('GET /graphs 返回 codeFirst 标识', async () => {
+    const map = new Map<string, AgentContext>();
+    map.set('agent-a', makeAgentContext('nodeA'));
+
+    ({ baseURL, cleanup } = await createAgentMapTestServer({
+      agentContextMap: map,
+      codeFirst: true,
+    }));
+
+    const res = await fetch(`${baseURL}/linforge/graphs`);
+    const data = await res.json();
+    expect(data.codeFirst).toBe(true);
+  });
+
+  it('未命中 agentContext 时 GET /graph/:slug 返回 404', async () => {
+    const map = new Map<string, AgentContext>();
+    map.set('agent-a', makeAgentContext('nodeA'));
+
+    const graphStore = new MemoryGraphStore();
+    // graph 存在但 agentContext 中没有
+    graphStore.setGraph('unknown', {
+      id: 'unknown',
+      slug: 'unknown',
+      name: 'Unknown',
+      nodes: [{ key: '__start__', label: '开始' }, { key: '__end__', label: '结束' }],
+      edges: [],
+    });
+
+    ({ baseURL, cleanup } = await createAgentMapTestServer({
+      agentContextMap: map,
+      graphStore,
+    }));
+
+    const res = await fetch(`${baseURL}/linforge/graph/unknown`);
+    expect(res.status).toBe(404);
   });
 });

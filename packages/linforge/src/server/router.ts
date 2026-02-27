@@ -2,8 +2,8 @@
 
 import type Koa from 'koa';
 import Router from '@koa/router';
-import type { NodeRegistry } from '../core/NodeRegistry';
-import type { GraphCompiler } from '../core/GraphCompiler';
+import { NodeRegistry } from '../core/NodeRegistry';
+import { GraphCompiler } from '../core/GraphCompiler';
 import type { RunManager } from '../core/RunManager';
 import type { TemplateRegistry } from '../core/TemplateRegistry';
 import type {
@@ -12,14 +12,25 @@ import type {
   StepPersister,
   PromptStore,
 } from '../core/types';
+import type { AgentContext } from './middleware';
 import { applyTemplate } from '../core/applyTemplate';
 import crypto from 'node:crypto';
 
 export interface MountRoutesOptions {
+  /** Agent 上下文映射（多 Agent 模式） */
+  agentContextMap?: Map<string, AgentContext>;
+
+  // —— 旧字段保留，向后兼容 ——
   /** Registry of registered nodes */
-  registry: NodeRegistry;
+  registry?: NodeRegistry;
   /** Graph compiler */
-  compiler: GraphCompiler;
+  compiler?: GraphCompiler;
+  /** StateSchema required for compilation */
+  stateSchema?: any;
+  /** Build graph input: transform instruction into graph.invoke() input */
+  buildInput?: (instruction: string) => Record<string, unknown>;
+
+  // —— 不变 ——
   /** Graph definition store */
   graphStore: GraphStore;
   /** Run manager */
@@ -32,14 +43,53 @@ export interface MountRoutesOptions {
   promptStore?: PromptStore;
   /** Template registry (optional, template API returns empty list if not provided) */
   templateRegistry?: TemplateRegistry;
-  /** StateSchema required for compilation */
-  stateSchema: any;
-  /** Build graph input: transform instruction into graph.invoke() input */
-  buildInput?: (instruction: string) => Record<string, unknown>;
   /** Enable debug mode: record full state snapshots (requires stepPersister) */
   stepRecordingDebug?: boolean;
   /** Route prefix, defaults to "/linforge" */
   prefix?: string;
+  /** 是否为 code-first 模式（agents 模式） */
+  codeFirst?: boolean;
+}
+
+// ============================================================
+// 辅助函数
+// ============================================================
+
+/**
+ * 按 slug 解析 AgentContext。
+ * 优先精确匹配，降级到通配符 '*'。
+ */
+function resolveAgentContext(
+  slug: string,
+  map: Map<string, AgentContext>,
+): AgentContext | undefined {
+  return map.get(slug) ?? map.get('*');
+}
+
+/**
+ * 将旧字段包装为 agentContextMap（兼容旧用法）。
+ */
+function ensureAgentContextMap(options: MountRoutesOptions): Map<string, AgentContext> {
+  if (options.agentContextMap) {
+    return options.agentContextMap;
+  }
+
+  // 旧字段兼容：构建通配符 context
+  if (!options.registry || !options.compiler || !options.stateSchema) {
+    throw new Error(
+      '[linforge] createLinforgeRouter 需要 agentContextMap 或 registry + compiler + stateSchema',
+    );
+  }
+
+  const defaultBuildInput = (instruction: string) => ({ instruction });
+  const map = new Map<string, AgentContext>();
+  map.set('*', {
+    registry: options.registry,
+    compiler: options.compiler,
+    stateSchema: options.stateSchema,
+    buildInput: options.buildInput ?? defaultBuildInput,
+  });
+  return map;
 }
 
 /**
@@ -69,19 +119,19 @@ export interface MountRoutesOptions {
  */
 export function createLinforgeRouter(options: MountRoutesOptions): Router {
   const {
-    registry,
-    compiler,
     graphStore,
     runManager,
     runStore,
     stepPersister,
     promptStore,
     templateRegistry,
-    stateSchema,
-    buildInput = (instruction: string) => ({ instruction }),
     stepRecordingDebug = false,
     prefix = '/linforge',
+    codeFirst = false,
   } = options;
+
+  // 统一构建 agentContextMap
+  const agentContextMap = ensureAgentContextMap(options);
 
   // Auto-build stepRecording config (enabled when stepPersister is provided)
   const stepRecordingConfig = stepPersister
@@ -108,11 +158,21 @@ export function createLinforgeRouter(options: MountRoutesOptions): Router {
         nodeCount: g.nodes.length,
         edgeCount: g.edges.length,
       })),
+      codeFirst,
     };
   });
 
   // POST /graphs — Create new graph
   router.post('/graphs', async (ctx) => {
+    // code-first 模式下，Graph 由代码注册，不允许通过 API 创建
+    if (codeFirst) {
+      ctx.status = 403;
+      ctx.body = {
+        error: 'Code-first 模式下，Agent 由代码注册，不允许通过 API 创建',
+      };
+      return;
+    }
+
     const body = (ctx.request as any).body as
       | Record<string, unknown>
       | undefined;
@@ -199,6 +259,15 @@ export function createLinforgeRouter(options: MountRoutesOptions): Router {
   router.get('/registry/nodes', async (ctx) => {
     const graphSlug = ctx.query.graphSlug as string | undefined;
 
+    // 解析对应 agent 的 registry
+    const agentCtx = resolveAgentContext(graphSlug || '*', agentContextMap);
+    if (!agentCtx) {
+      ctx.status = 404;
+      ctx.body = { error: `未找到 slug "${graphSlug}" 对应的 Agent 配置` };
+      return;
+    }
+    const { registry } = agentCtx;
+
     if (graphSlug) {
       const graphDef = await graphStore.getGraph(graphSlug);
       if (!graphDef) {
@@ -248,7 +317,15 @@ export function createLinforgeRouter(options: MountRoutesOptions): Router {
       return;
     }
 
-    const { skeleton } = registry.getBindingStatus(graphDef);
+    // 从 agentContextMap 获取对应的 registry
+    const agentCtx = resolveAgentContext(slug, agentContextMap);
+    if (!agentCtx) {
+      ctx.status = 404;
+      ctx.body = { error: `未找到 slug "${slug}" 对应的 Agent 配置` };
+      return;
+    }
+
+    const { skeleton } = agentCtx.registry.getBindingStatus(graphDef);
     ctx.body = { ...graphDef, skeletonKeys: skeleton };
   });
 
@@ -265,6 +342,14 @@ export function createLinforgeRouter(options: MountRoutesOptions): Router {
       return;
     }
 
+    // 从 agentContextMap 获取对应的 registry
+    const agentCtx = resolveAgentContext(slug, agentContextMap);
+    if (!agentCtx) {
+      ctx.status = 404;
+      ctx.body = { error: `未找到 slug "${slug}" 对应的 Agent 配置` };
+      return;
+    }
+
     // Preserve existing graph's id/name (if exists)
     const existing = await graphStore.getGraph(slug);
     const graphDef = {
@@ -276,7 +361,7 @@ export function createLinforgeRouter(options: MountRoutesOptions): Router {
     };
 
     await graphStore.saveGraph(graphDef as any);
-    const { skeleton } = registry.getBindingStatus(graphDef as any);
+    const { skeleton } = agentCtx.registry.getBindingStatus(graphDef as any);
     ctx.body = { ...graphDef, skeletonKeys: skeleton };
   });
 
@@ -314,6 +399,16 @@ export function createLinforgeRouter(options: MountRoutesOptions): Router {
       ctx.body = { error: `Graph "${slug}" not found` };
       return;
     }
+
+    // 从 agentContextMap 获取对应的 compiler + stateSchema + buildInput
+    const agentCtx = resolveAgentContext(slug, agentContextMap);
+    if (!agentCtx) {
+      ctx.status = 404;
+      ctx.body = { error: `未找到 slug "${slug}" 对应的 Agent 配置` };
+      return;
+    }
+
+    const { compiler, stateSchema, buildInput } = agentCtx;
 
     // Compile graph (auto-wires stepRecording)
     const { graph } = compiler.compile({
@@ -514,6 +609,14 @@ export function createLinforgeRouter(options: MountRoutesOptions): Router {
       return;
     }
 
+    // 从 agentContextMap 获取对应的 registry
+    const agentCtx = resolveAgentContext(slug, agentContextMap);
+    if (!agentCtx) {
+      ctx.status = 404;
+      ctx.body = { error: `未找到 slug "${slug}" 对应的 Agent 配置` };
+      return;
+    }
+
     // Get existing graph definition (create empty graph if not found)
     let existing = await graphStore.getGraph(slug);
     if (!existing) {
@@ -535,7 +638,7 @@ export function createLinforgeRouter(options: MountRoutesOptions): Router {
     );
     await graphStore.saveGraph(updatedGraph);
 
-    const { skeleton } = registry.getBindingStatus(updatedGraph);
+    const { skeleton } = agentCtx.registry.getBindingStatus(updatedGraph);
     ctx.body = {
       ...updatedGraph,
       skeletonKeys: skeleton,
