@@ -135,6 +135,7 @@ Linforge ships in-memory implementations (`linforge/testing`) for development. F
 One-line setup that auto-creates all internal components:
 
 ```typescript
+// Single-agent mode (backward compatible)
 app.use(linforgeMiddleware({
   stateSchema: MyState,     // required — LangGraph StateSchema
   nodes: [planner, tools],  // required — node definitions
@@ -147,6 +148,29 @@ app.use(linforgeMiddleware({
   },
 }));
 ```
+
+#### Multi-Agent mode
+
+Bind distinct `stateSchema` and `nodes` per Agent:
+
+```typescript
+app.use(linforgeMiddleware({
+  agents: [
+    { slug: 'qa-bot', name: 'QA Bot', stateSchema: QAState, nodes: [retriever, answerer] },
+    { slug: 'coder', name: 'Coder', stateSchema: CoderState, nodes: [planner, coder] },
+  ],
+  sharedNodes: [logger],  // available to all agents
+}));
+```
+
+Each agent gets its own `NodeRegistry` and `GraphCompiler`. Routes resolve context by slug. The middleware auto-creates empty graph definitions in `GraphStore` on first request (code-first mode).
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `agents` | `AgentConfig[]` | — | Multi-agent config (mutually exclusive with `stateSchema`/`nodes`) |
+| `sharedNodes` | `NodeDefinition[]` | `[]` | Common nodes registered to every agent |
+| `stateSchema` | StateSchema | — | Single-agent: LangGraph StateSchema |
+| `nodes` | `NodeDefinition[]` | — | Single-agent: node definitions |
 
 ### mountRoutes (low-level)
 

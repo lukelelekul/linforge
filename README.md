@@ -14,6 +14,7 @@ Embeddable workbench for [LangGraph](https://langchain-ai.github.io/langgraphjs/
 - **Template system** — 4 built-in graph templates (ReAct, Pipeline, Map-Reduce, Human-in-the-Loop)
 - **Store interface** — pluggable persistence via `GraphStore`, `RunStore`, `StepPersister`, `PromptStore`
 - **One-line integration** — `<LinforgeWorkbench>` component embeds the full workbench in any React app
+- **Multi-Agent mode** — bind distinct `stateSchema` and `nodes` per Agent via `agents` config; code-first GraphStore auto-sync
 - **Run metadata** — pass business context (userId, tenantId, source) through run lifecycle and filter by metadata
 - **Koa server routes** — `linforgeMiddleware()` for one-line setup, or `mountRoutes()` for full control — 16 REST endpoints
 
@@ -68,6 +69,22 @@ app.listen(3001);
 ```
 
 > Need full control? Use `mountRoutes()` directly — see [examples/full-stack/](examples/full-stack/) for the manual assembly approach.
+
+#### Multi-Agent mode
+
+When you have multiple Agents with different state schemas or node implementations, use the `agents` config:
+
+```ts
+app.use(linforgeMiddleware({
+  agents: [
+    { slug: 'qa-bot', name: 'QA Bot', stateSchema: QAState, nodes: [retriever, answerer] },
+    { slug: 'coder', name: 'Coder', stateSchema: CoderState, nodes: [planner, coder] },
+  ],
+  sharedNodes: [logger],  // available to all agents
+}));
+```
+
+Each agent gets its own `NodeRegistry`, `GraphCompiler`, and `stateSchema`. The middleware automatically creates empty graph definitions in `GraphStore` for each agent on first request.
 
 ### 3. Frontend
 
@@ -134,6 +151,8 @@ All peer dependencies are optional — install only what you need.
 | --------------------------- | ------------------------------------ |
 | `linforgeMiddleware(opts)`  | One-line Koa middleware — auto-creates Registry, Compiler, RunManager, Stores (recommended) |
 | `mountRoutes(router, opts)` | Mount 16 REST routes on a Koa router (low-level API) |
+| `AgentConfig`               | Type: per-agent configuration (slug, name, stateSchema, nodes) |
+| `AgentContext`              | Type: runtime context resolved per slug (registry, compiler, stateSchema, buildInput) |
 
 ### React
 

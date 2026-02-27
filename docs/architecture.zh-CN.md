@@ -179,14 +179,36 @@ app.listen(3001);
 
 | 选项 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `stateSchema` | StateSchema | **必填** | LangGraph StateSchema 实例 |
-| `nodes` | NodeDefinition[] | **必填** | defineNode() 创建的节点数组 |
+| `stateSchema` | StateSchema | — | 单 Agent 模式：LangGraph StateSchema 实例 |
+| `nodes` | NodeDefinition[] | — | 单 Agent 模式：defineNode() 创建的节点数组 |
+| `agents` | AgentConfig[] | — | 多 Agent 模式：每个 Agent 的配置（slug、name、stateSchema、nodes） |
+| `sharedNodes` | NodeDefinition[] | `[]` | 多 Agent 模式：注册到每个 agent 的公共节点 |
 | `prefix` | string | `"/linforge"` | 路由前缀 |
 | `stores` | object | Memory* 默认值 | 自定义 Store 实现 (graphStore, runStore, stepPersister, promptStore) |
 | `buildInput` | function | `(i) => ({ instruction: i })` | 将 instruction 转换为图输入 |
 | `stepRecordingDebug` | boolean | `false` | 记录完整 state 快照 |
 | `templates` | GraphTemplate[] | `[]` | 追加到内置模板的自定义模板 |
 | `disableBuiltinTemplates` | boolean | `false` | 禁用内置模板 |
+
+> `stateSchema` + `nodes`（单 Agent）和 `agents`（多 Agent）二选一。使用 `agents` 时，每个 agent 拥有独立的 `NodeRegistry` 和 `GraphCompiler`，middleware 首次请求时自动同步 GraphStore（code-first 模式）。
+
+#### 多 Agent 模式
+
+```typescript
+app.use(linforgeMiddleware({
+  agents: [
+    { slug: 'qa-bot', name: 'QA Bot', stateSchema: QAState, nodes: [retriever, answerer] },
+    { slug: 'coder', name: 'Coder', stateSchema: CoderState, nodes: [planner, coder] },
+  ],
+  sharedNodes: [logger],
+}));
+```
+
+多 Agent 模式下：
+- 每个 agent 的 `stateSchema` 独立注入 `agentRunId`
+- 路由通过 `:slug` 参数解析 agent 上下文，单 Agent 模式降级到通配符 `'*'`
+- `GET /graphs` 返回 `codeFirst: true`；`POST /graphs` 返回 403（Graph 由代码注册）
+- 首次请求时，middleware 为 GraphStore 中不存在的 agent slug 自动创建空拓扑
 
 ### mountRoutes（底层 API）
 

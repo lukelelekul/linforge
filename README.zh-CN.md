@@ -14,6 +14,7 @@
 - **模板系统** — 4 个内置图模板（ReAct、Pipeline、Map-Reduce、Human-in-the-Loop）
 - **Store 接口** — 可插拔的持久化层：`GraphStore`、`RunStore`、`StepPersister`、`PromptStore`
 - **一行集成** — `<LinforgeWorkbench>` 组件将完整工作台嵌入任意 React 应用
+- **多 Agent 模式** — 通过 `agents` 配置为每个 Agent 绑定独立的 `stateSchema` 和 `nodes`；code-first 自动同步 GraphStore
 - **Run metadata 透传** — 传入业务上下文（userId、tenantId、source），贯穿运行生命周期，支持按 metadata 过滤
 - **Koa 服务端路由** — `linforgeMiddleware()` 一行接入，或 `mountRoutes()` 完全控制 — 16 条 REST 端点
 
@@ -68,6 +69,22 @@ app.listen(3001);
 ```
 
 > 需要完全控制？使用 `mountRoutes()` 手动组装 — 参见 [examples/full-stack/](examples/full-stack/)
+
+#### 多 Agent 模式
+
+当多个 Agent 需要不同的 state schema 或节点实现时，使用 `agents` 配置：
+
+```ts
+app.use(linforgeMiddleware({
+  agents: [
+    { slug: 'qa-bot', name: 'QA Bot', stateSchema: QAState, nodes: [retriever, answerer] },
+    { slug: 'coder', name: 'Coder', stateSchema: CoderState, nodes: [planner, coder] },
+  ],
+  sharedNodes: [logger],  // 注册到所有 agent 的公共节点
+}));
+```
+
+每个 agent 拥有独立的 `NodeRegistry`、`GraphCompiler` 和 `stateSchema`。middleware 首次请求时自动在 GraphStore 中为每个 agent 创建空拓扑。
 
 ### 3. 前端
 
@@ -149,6 +166,8 @@ Linforge 采用三层架构，兼顾灵活性与可执行性：
 | ---------------------------- | --------------------------------------------------------------------- |
 | `linforgeMiddleware(opts)`   | 一行接入 Koa 中间件 — 自动创建 Registry、Compiler、RunManager、Stores（推荐） |
 | `mountRoutes(router, opts)`  | 在 Koa Router 上挂载 16 条路由（底层 API）                            |
+| `AgentConfig`                | 类型：单个 Agent 的配置（slug、name、stateSchema、nodes）             |
+| `AgentContext`               | 类型：按 slug 解析的运行时上下文（registry、compiler、stateSchema、buildInput） |
 
 ### React
 

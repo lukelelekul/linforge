@@ -191,14 +191,36 @@ Options:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `stateSchema` | StateSchema | **required** | LangGraph StateSchema instance |
-| `nodes` | NodeDefinition[] | **required** | Node definitions created via defineNode() |
+| `stateSchema` | StateSchema | — | Single-agent: LangGraph StateSchema instance |
+| `nodes` | NodeDefinition[] | — | Single-agent: node definitions created via defineNode() |
+| `agents` | AgentConfig[] | — | Multi-agent: per-agent config (slug, name, stateSchema, nodes) |
+| `sharedNodes` | NodeDefinition[] | `[]` | Multi-agent: common nodes registered to every agent |
 | `prefix` | string | `"/linforge"` | Route prefix |
 | `stores` | object | Memory* defaults | Custom Store implementations (graphStore, runStore, stepPersister, promptStore) |
 | `buildInput` | function | `(i) => ({ instruction: i })` | Transform instruction into graph input |
 | `stepRecordingDebug` | boolean | `false` | Record full state snapshots |
 | `templates` | GraphTemplate[] | `[]` | Additional templates appended to built-ins |
 | `disableBuiltinTemplates` | boolean | `false` | Disable built-in templates |
+
+> Use either `stateSchema` + `nodes` (single-agent) or `agents` (multi-agent). When `agents` is provided, each agent gets its own `NodeRegistry` and `GraphCompiler`, and the middleware auto-syncs `GraphStore` on first request (code-first mode).
+
+#### Multi-Agent Mode
+
+```typescript
+app.use(linforgeMiddleware({
+  agents: [
+    { slug: 'qa-bot', name: 'QA Bot', stateSchema: QAState, nodes: [retriever, answerer] },
+    { slug: 'coder', name: 'Coder', stateSchema: CoderState, nodes: [planner, coder] },
+  ],
+  sharedNodes: [logger],
+}));
+```
+
+In multi-agent mode:
+- Each agent's `stateSchema` is independently auto-injected with `agentRunId`
+- Routes resolve agent context by the `:slug` parameter, falling back to wildcard `'*'` in single-agent mode
+- `GET /graphs` returns `codeFirst: true`; `POST /graphs` returns 403 (graphs are code-managed)
+- On first request, the middleware creates empty graph definitions for any agent slug not yet in `GraphStore`
 
 ### mountRoutes (low-level)
 

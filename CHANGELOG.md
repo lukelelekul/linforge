@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.3.0 (2026-02-27)
+
+### Server (`linforge/server`)
+
+- **Multi-Agent mode** — `linforgeMiddleware({ agents: [...] })` allows each Agent to have its own `stateSchema`, `nodes`, and `buildInput`. Agents are identified by slug and routed independently.
+- **`AgentConfig` / `AgentContext`** — new exported types for per-agent configuration and runtime context
+- **`sharedNodes`** — register common node implementations across all agents
+- **Code-first GraphStore sync** — when using `agents` mode, the middleware automatically creates empty graph definitions in `GraphStore` on first request (lazy sync); existing graphs are preserved
+- **`GET /graphs` returns `codeFirst` flag** — frontend can detect whether graphs are code-managed
+- **`POST /graphs` returns 403 in code-first mode** — graph creation is controlled by code, not the UI
+
+### Core (`linforge/core`)
+
+- **Fix: `defineNode()` now passes `label` field** — previously `label` was accepted in options but not included in the returned `NodeDefinition`
+
+### React (`linforge/react`)
+
+- **`useLinforgeGraphList` returns `codeFirst`** — read from `GET /graphs` response
+- **`GraphListView` hides "Create Agent" button** in code-first mode
+
+### Backward Compatibility
+
+- Single-agent `{ stateSchema, nodes }` configuration continues to work unchanged — internally normalized to `agents: [{ slug: '*', ... }]`
+- `createLinforgeRouter()` still accepts legacy `registry` / `compiler` / `stateSchema` fields
+
 ## 0.1.0 (2026-02-24)
 
 Initial release.
