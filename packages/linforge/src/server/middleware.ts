@@ -231,21 +231,26 @@ async function syncGraphStore(
     // 通配符模式不同步
     if (agent.slug === WILDCARD_SLUG) continue;
 
-    const existing = await graphStore.getGraph(agent.slug);
-    if (!existing) {
-      // 创建带 __start__ + __end__ 的空拓扑
-      await graphStore.saveGraph({
-        id: agent.slug,
-        slug: agent.slug,
-        name: agent.name,
-        nodes: [
-          { key: '__start__', label: '开始', nodeType: 'start' as const },
-          { key: '__end__', label: '结束', nodeType: 'end' as const },
-        ],
-        edges: [],
-      });
+    try {
+      const existing = await graphStore.getGraph(agent.slug);
+      if (!existing) {
+        // 创建带 __start__ + __end__ 的空拓扑
+        await graphStore.saveGraph({
+          id: agent.slug,
+          slug: agent.slug,
+          name: agent.name,
+          nodes: [
+            { key: '__start__', label: '开始', nodeType: 'start' as const },
+            { key: '__end__', label: '结束', nodeType: 'end' as const },
+          ],
+          edges: [],
+        });
+      }
+      // 已存在 → 不覆盖（保留用户在画布上编辑的拓扑）
+    } catch (e: any) {
+      console.warn(`[linforge] graph sync failed for "${agent.slug}":`, e.message);
+      // 不抛出 — 单个 graph 同步失败不阻断服务启动
     }
-    // 已存在 → 不覆盖（保留用户在画布上编辑的拓扑）
   }
 }
 

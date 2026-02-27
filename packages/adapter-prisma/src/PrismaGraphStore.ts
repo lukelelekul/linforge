@@ -30,11 +30,24 @@ export class PrismaGraphStore implements GraphStore {
       nodes: toJson(graph.nodes),
       edges: toJson(graph.edges),
     };
-    await (this.prisma as any).linforgeGraph.upsert({
-      where: { slug: graph.slug },
-      update: data,
-      create: { id: graph.id, slug: graph.slug, ...data },
-    });
+    try {
+      await (this.prisma as any).linforgeGraph.upsert({
+        where: { slug: graph.slug },
+        update: data,
+        create: { id: graph.id, slug: graph.slug, ...data },
+      });
+    } catch (e: any) {
+      if (e.code === 'P2002') {
+        // MySQL upsert 检查所有唯一约束，主键冲突时降级为按 id 更新
+        // 用 id 而非 slug 定位，因为冲突源是主键——旧记录 id 相同但 slug 可能不同
+        await (this.prisma as any).linforgeGraph.update({
+          where: { id: graph.id },
+          data: { ...data, slug: graph.slug },
+        });
+      } else {
+        throw e;
+      }
+    }
   }
 
   async listGraphs(): Promise<GraphDefinition[]> {
