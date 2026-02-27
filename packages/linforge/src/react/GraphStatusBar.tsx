@@ -19,6 +19,8 @@ export interface GraphStatusBarProps {
  * Validation rules:
  * 1. All non-start/end nodes are bound (no skeleton nodes)
  * 2. All conditional edges have registered routes on their source (no pending conditional edges)
+ * 3. All user nodes are reachable from __start__ (forward BFS)
+ * 4. All user nodes can reach __end__ (reverse BFS)
  */
 export function GraphStatusBar({
   skeletonKeys,
@@ -47,10 +49,46 @@ export function GraphStatusBar({
       return reg && reg.routeKeys.length > 0;
     });
 
+    // 条件 3 + 4：图连通性校验（BFS 可达性）
+    const forward = new Map<string, string[]>(); // source → targets
+    const reverse = new Map<string, string[]>(); // target → sources
+    for (const e of graphDef.edges) {
+      const fwd = forward.get(e.source);
+      if (fwd) fwd.push(e.target);
+      else forward.set(e.source, [e.target]);
+      const rev = reverse.get(e.target);
+      if (rev) rev.push(e.source);
+      else reverse.set(e.target, [e.source]);
+    }
+
+    const bfsReachable = (start: string, adj: Map<string, string[]>): Set<string> => {
+      const visited = new Set<string>([start]);
+      const queue = [start];
+      while (queue.length > 0) {
+        const cur = queue.shift()!;
+        for (const next of adj.get(cur) ?? []) {
+          if (!visited.has(next)) {
+            visited.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      return visited;
+    };
+
+    // 正向：__start__ 可达所有用户节点
+    const forwardReachable = bfsReachable('__start__', forward);
+    const allForwardReachable = userNodes.every((n) => forwardReachable.has(n.key));
+
+    // 反向：所有用户节点可达 __end__
+    const reverseReachable = bfsReachable('__end__', reverse);
+    const allReverseReachable = userNodes.every((n) => reverseReachable.has(n.key));
+
     return {
       boundCount: bound,
       totalCount: total,
-      isValid: total > 0 && allBound && allRoutesValid,
+      isValid: total > 0 && allBound && allRoutesValid
+        && allForwardReachable && allReverseReachable,
     };
   }, [graphDef, skeletonKeys, registryNodes]);
 

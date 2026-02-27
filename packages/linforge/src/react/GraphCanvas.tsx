@@ -193,6 +193,12 @@ function GraphCanvasInner({
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
+  // ref 始终保持最新值，用于保存时读取，避免 setState 嵌套
+  const nodesRef = useRef<Node[]>([]);
+  const edgesRef = useRef<Edge[]>([]);
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => { edgesRef.current = edges; }, [edges]);
+
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -349,17 +355,11 @@ function GraphCanvasInner({
       const hasRemove = changes.some((c) => c.type === 'remove');
       if ((hasDragEnd || hasRemove) && effectiveEditable) {
         setTimeout(() => {
-          setNodes((nds) => {
-            setEdges((eds) => {
-              triggerSave(nds, eds);
-              return eds;
-            });
-            return nds;
-          });
+          triggerSave(nodesRef.current, edgesRef.current);
         }, 0);
       }
     },
-    [onNodesChange, effectiveEditable, triggerSave, setNodes, setEdges],
+    [onNodesChange, effectiveEditable, triggerSave],
   );
 
   // 连线校验
@@ -387,24 +387,14 @@ function GraphCanvasInner({
   const onConnect: OnConnect = useCallback(
     (params) => {
       if (!effectiveEditable) return;
-      setEdges((eds) => {
-        const newEdges = addEdge(
-          {
-            ...params,
-            ...DEFAULT_EDGE_STYLE,
-          },
-          eds,
-        );
-        setTimeout(() => {
-          setNodes((nds) => {
-            triggerSave(nds, newEdges);
-            return nds;
-          });
-        }, 0);
-        return newEdges;
-      });
+      setEdges((eds) =>
+        addEdge({ ...params, ...DEFAULT_EDGE_STYLE }, eds),
+      );
+      setTimeout(() => {
+        triggerSave(nodesRef.current, edgesRef.current);
+      }, 0);
     },
-    [effectiveEditable, setEdges, setNodes, triggerSave],
+    [effectiveEditable, setEdges, triggerSave],
   );
 
   // 删除
@@ -414,17 +404,11 @@ function GraphCanvasInner({
       const hasRemove = changes.some((c) => c.type === 'remove');
       if (hasRemove && effectiveEditable) {
         setTimeout(() => {
-          setEdges((eds) => {
-            setNodes((nds) => {
-              triggerSave(nds, eds);
-              return nds;
-            });
-            return eds;
-          });
+          triggerSave(nodesRef.current, edgesRef.current);
         }, 0);
       }
     },
-    [onEdgesChange, effectiveEditable, setEdges, setNodes, triggerSave],
+    [onEdgesChange, effectiveEditable, triggerSave],
   );
 
   // 节点点击
@@ -502,8 +486,8 @@ function GraphCanvasInner({
       edgeId: string,
       updates: { label?: string; routeMap?: Record<string, string> },
     ) => {
-      setEdges((eds) => {
-        const newEdges = eds.map((e) => {
+      setEdges((eds) =>
+        eds.map((e) => {
           if (e.id !== edgeId) return e;
 
           const isConditional =
@@ -531,17 +515,11 @@ function GraphCanvasInner({
             },
             markerEnd: { type: 'arrowclosed' as const, color: edgeColor },
           };
-        });
-
-        setTimeout(() => {
-          setNodes((nds) => {
-            triggerSave(nds, newEdges);
-            return nds;
-          });
-        }, 0);
-
-        return newEdges;
-      });
+        }),
+      );
+      setTimeout(() => {
+        triggerSave(nodesRef.current, edgesRef.current);
+      }, 0);
       setEdgePopover(null);
       // 取消节点选中
       setNodes((nds) =>

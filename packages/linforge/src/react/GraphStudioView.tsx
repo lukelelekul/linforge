@@ -107,6 +107,8 @@ export function GraphStudioView({
 
   const handleNodeClick = useCallback(
     (key: string) => {
+      // terminal 节点（__start__ / __end__）不打开右侧面板
+      if (key.startsWith('__')) return;
       if (canvasMode === 'replay') {
         selectStepNode(key);
         loadSnapshots();
