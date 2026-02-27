@@ -110,7 +110,7 @@ Starting from a blank canvas is slow. Linforge provides built-in templates for c
 | ----------------- | ----------------------------------------------------- | ----------------------- |
 | ReAct Agent       | planner → tools → processResults → checkLimits (loop) | Tool-calling Agent      |
 | Pipeline          | step1 → step2 → step3 → save                          | Linear processing       |
-| Map-Reduce        | split → parallel workers → merge → output             | Parallel processing     |
+| Map-Reduce        | split → 3 parallel workers → merge → output           | Parallel processing     |
 | Human-in-the-Loop | agent → review → (approve/reject) → ...               | Human approval required |
 
 #### Template Data Format
@@ -385,7 +385,7 @@ Replaces the deprecated `TemplateGallery`, simplified to a flat list:
 
 - Compact cards: icon + name + description + node/edge count badges
 - "Active" badge (teal): template currently applied to the canvas
-- "Phase 2" badge (gray): unimplemented templates (controlled via `disabled` prop)
+- "Phase 2" badge (gray): templates not yet available (controlled via `disabled` prop)
 - Empty canvas hint: highlighted prompt at top when `isCanvasEmpty` is true
 - Click triggers `onSelect(templateId)` callback
 - Pure inline styles

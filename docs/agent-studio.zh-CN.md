@@ -113,7 +113,7 @@ Phase 4 - Run & Debug (in Studio):
 | ----------------- | ----------------------------------------------------- | ---------------- |
 | ReAct Agent       | planner → tools → processResults → checkLimits (loop) | 工具调用型 Agent |
 | Pipeline          | step1 → step2 → step3 → save                          | 线性处理管线     |
-| Map-Reduce        | split → parallel workers → merge → output             | 并行处理         |
+| Map-Reduce        | split → 3 parallel workers → merge → output           | 并行处理         |
 | Human-in-the-loop | agent → review → (approve/reject) → ...               | 需要人工审核     |
 
 #### 模板数据格式
@@ -393,7 +393,7 @@ interface ReplayStep {
 
 - 紧凑卡片：图标 + 名称 + 描述 + 节点/边数量 badge
 - 「当前」badge（teal）：已应用到画布的模板
-- 「Phase 2」badge（灰色）：未实现的模板（通过 `disabled` prop 控制）
+- 「Phase 2」badge（灰色）：暂不可用的模板（通过 `disabled` prop 控制）
 - 空画布引导：`isCanvasEmpty` 为 true 时顶部显示高亮提示
 - 点击卡片触发 `onSelect(templateId)` 回调
 - 纯内联样式

@@ -8,6 +8,12 @@
 - **`renderPrompt()` pure function** — standalone Mustache rendering utility (HTML escaping disabled for Prompt context)
 - **New types** — `RenderResult` (rendered text + temperature + source tracking), `PromptFallback` (fallback config)
 - **New dependency** — `mustache` (~3KB, zero sub-dependencies)
+- **Map-Reduce template enabled** — removed `disabled` flag, added Worker 3 node (2→3 workers), updated description to note reducer requirement
+- **Built-in templates** — all 4 templates (ReAct, Pipeline, Map-Reduce, Human-in-the-Loop) are now fully available
+
+### React (`linforge/react`)
+
+- **Fan-out edge styling** — parallel edges (same source, ≥2 non-conditional outgoing edges) now render as purple dashed lines to distinguish from conditional edges (amber) and normal edges (teal)
 
 ## 0.3.0 (2026-02-27)
 

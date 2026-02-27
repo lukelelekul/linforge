@@ -95,13 +95,12 @@ export const pipelineTemplate: GraphTemplate = {
   ],
 };
 
-/** Map-Reduce — parallel processing (requires fan-out/fan-in compiler support, not yet available) */
+/** Map-Reduce — parallel fan-out / fan-in processing with result aggregation */
 export const mapReduceTemplate: GraphTemplate = {
   id: 'map-reduce',
   name: 'Map-Reduce',
-  description: '拆分任务并行处理，合并结果输出',
+  description: '拆分任务并行处理，合并结果输出（需要 state 字段配置 reducer 以合并并行结果）',
   category: 'pattern',
-  disabled: true,
   nodes: [
     {
       key: 'split',
@@ -122,6 +121,12 @@ export const mapReduceTemplate: GraphTemplate = {
       icon: 'cpu',
     },
     {
+      key: 'worker3',
+      label: 'Worker 3',
+      description: '并行处理子任务 3',
+      icon: 'cpu',
+    },
+    {
       key: 'merge',
       label: 'Merge',
       description: '合并处理结果',
@@ -137,8 +142,10 @@ export const mapReduceTemplate: GraphTemplate = {
   edges: [
     { source: 'split', target: 'worker1' },
     { source: 'split', target: 'worker2' },
+    { source: 'split', target: 'worker3' },
     { source: 'worker1', target: 'merge' },
     { source: 'worker2', target: 'merge' },
+    { source: 'worker3', target: 'merge' },
     { source: 'merge', target: 'output' },
   ],
 };

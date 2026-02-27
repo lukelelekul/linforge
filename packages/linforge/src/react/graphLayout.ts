@@ -69,26 +69,38 @@ export function buildLayout(
     };
   });
 
+  // 统计每个 source 的出边数，用于检测 fan-out（并行分支）
+  const sourceOutCount = new Map<string, number>();
+  for (const e of graphDef.edges) {
+    sourceOutCount.set(e.source, (sourceOutCount.get(e.source) || 0) + 1);
+  }
+
   const edges: Edge[] = graphDef.edges.map((edgeDef, index) => {
     const isConditional =
       edgeDef.routeMap && Object.keys(edgeDef.routeMap).length > 0;
+
+    // 并行分支：同一 source 有 ≥2 条非条件出边
+    const isFanOut =
+      !isConditional && (sourceOutCount.get(edgeDef.source) || 0) >= 2;
 
     // 判断 pending 状态：有 routeMap 但 source 节点未注册 routes
     const sourceRoutes = routeKeysMap.get(edgeDef.source);
     const isPending =
       isConditional && (!sourceRoutes || sourceRoutes.length === 0);
 
-    // pending 条件边：虚线 + 灰色；active 条件边：虚线 + amber；普通边：实线 + brand
-    const edgeColor = isConditional
-      ? isPending
-        ? '#9ca3af'
-        : '#f59e0b'
-      : '#2dd4bf';
+    // 并行边：紫色虚线；条件边：琥珀/灰色虚线；普通边：青绿实线
+    const edgeColor = isFanOut
+      ? '#8b5cf6'
+      : isConditional
+        ? isPending
+          ? '#9ca3af'
+          : '#f59e0b'
+        : '#2dd4bf';
     const edgeStyle: Record<string, unknown> = {
       stroke: edgeColor,
       strokeWidth: 2,
     };
-    if (isConditional) {
+    if (isConditional || isFanOut) {
       edgeStyle.strokeDasharray = '6 3';
     }
 
